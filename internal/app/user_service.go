@@ -19,6 +19,9 @@ func (s *UserService) Create(ctx context.Context, input user.User) (user.User, e
     if input.Name == "" || input.Email == "" {
         return user.User{}, errors.New("name and email are required")
     }
+    if input.Balance < 0 {
+        return user.User{}, errors.New("balance cannot be negative")
+    }
     return s.repo.Create(ctx, input)
 }
 
@@ -36,6 +39,9 @@ func (s *UserService) Update(ctx context.Context, input user.User) (user.User, e
     }
     if input.Name == "" || input.Email == "" {
         return user.User{}, errors.New("name and email are required")
+    }
+    if input.Balance < 0 {
+        return user.User{}, errors.New("balance cannot be negative")
     }
     return s.repo.Update(ctx, input)
 }

@@ -21,15 +21,14 @@ func Run() error {
         c.JSON(http.StatusOK, gin.H{"status": "ok"})
     })
 
-    infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
-    infocarService := NewInfocarService(infocarClient)
-    infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
-
     if cfg.UseMockDB || cfg.FirebaseProjectID == "" {
         userRepo := memory.NewUserRepository()
         taskRepo := memory.NewTaskRepository()
         userService := NewUserService(userRepo)
         taskService := NewTaskService(taskRepo)
+        infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
+        infocarService := NewInfocarService(infocarClient, userRepo, 1)
+        infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
 
         userHandler := httpinterfaces.NewUserHandler(userService)
         taskHandler := httpinterfaces.NewTaskHandler(taskService)
@@ -45,6 +44,9 @@ func Run() error {
         taskRepo := firestore.NewTaskRepository(client)
         userService := NewUserService(userRepo)
         taskService := NewTaskService(taskRepo)
+        infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
+        infocarService := NewInfocarService(infocarClient, userRepo, 1)
+        infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
 
         userHandler := httpinterfaces.NewUserHandler(userService)
         taskHandler := httpinterfaces.NewTaskHandler(taskService)

@@ -10,7 +10,7 @@ import (
 )
 
 type InfocarService interface {
-    GetAgregadosB(ctx context.Context, queryType, value string) (*infocar.AgregadosBResponse, error)
+    GetAgregadosB(ctx context.Context, userID, queryType, value string) (*infocar.AgregadosBResponse, error)
 }
 
 type InfocarHandler struct {
@@ -22,6 +22,12 @@ func NewInfocarHandler(service InfocarService) *InfocarHandler {
 }
 
 func (h *InfocarHandler) GetAgregadosB(c *gin.Context) {
+    userID := c.GetHeader("X-User-Id")
+    if userID == "" {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "missing X-User-Id header"})
+        return
+    }
+
     queryType := c.Param("tipo")
     value := c.Param("valor")
     if queryType == "" || value == "" {
@@ -29,7 +35,7 @@ func (h *InfocarHandler) GetAgregadosB(c *gin.Context) {
         return
     }
 
-    result, err := h.service.GetAgregadosB(c.Request.Context(), queryType, value)
+    result, err := h.service.GetAgregadosB(c.Request.Context(), userID, queryType, value)
     if err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
         return

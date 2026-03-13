@@ -5,6 +5,7 @@ BuskaTotal é uma **plataforma de consulta veicular, crédito, dados e jurídico
 ## Documentação
 
 - [Documentação técnica](docs/README.md)
+- [OpenAPI (Swagger)](docs/openapi.yaml)
 
 ## Requisitos
 
@@ -78,6 +79,19 @@ Exemplo payload:
   "description": "Ir à padaria",
   "done": false
 }
+```
+
+### Infocar (Agregados B)
+- `GET /infocar/agregados-b/:tipo/:valor`
+
+Headers obrigatórios:
+- `X-User-Id`: ID do usuário com saldo (mock)
+
+Exemplo:
+
+```
+GET /infocar/agregados-b/placa/ABC1234
+X-User-Id: <ID_DO_USUARIO>
 ```
 
 ## Estrutura (DDD)

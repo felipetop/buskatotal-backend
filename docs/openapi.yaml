@@ -1,0 +1,268 @@
+openapi: 3.0.3
+info:
+  title: BuskaTotal Backend API
+  description: |
+    API para gestão de usuários, tarefas e consultas Infocar (Agregados B).
+
+    **Observação de segurança:**
+    - A rota Infocar exige o header `X-User-Id` e verifica saldo do usuário.
+    - O saldo é mock até a integração do módulo de pagamento.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /users:
+    post:
+      summary: Criar usuário
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInput"
+      responses:
+        "201":
+          description: Criado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    get:
+      summary: Listar usuários
+      responses:
+        "200":
+          description: Lista de usuários
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+  /users/{id}:
+    get:
+      summary: Buscar usuário por ID
+      parameters:
+        - $ref: "#/components/parameters/UserIdPath"
+      responses:
+        "200":
+          description: Usuário
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: Não encontrado
+    put:
+      summary: Atualizar usuário
+      parameters:
+        - $ref: "#/components/parameters/UserIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserInput"
+      responses:
+        "200":
+          description: Atualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+    delete:
+      summary: Remover usuário
+      parameters:
+        - $ref: "#/components/parameters/UserIdPath"
+      responses:
+        "204":
+          description: Sem conteúdo
+  /tasks:
+    post:
+      summary: Criar tarefa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskInput"
+      responses:
+        "201":
+          description: Criado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+    get:
+      summary: Listar tarefas por usuário
+      parameters:
+        - $ref: "#/components/parameters/UserIdQuery"
+      responses:
+        "200":
+          description: Lista de tarefas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+  /tasks/{id}:
+    get:
+      summary: Buscar tarefa por ID
+      parameters:
+        - $ref: "#/components/parameters/TaskIdPath"
+      responses:
+        "200":
+          description: Tarefa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+    put:
+      summary: Atualizar tarefa
+      parameters:
+        - $ref: "#/components/parameters/TaskIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskInput"
+      responses:
+        "200":
+          description: Atualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+    delete:
+      summary: Remover tarefa
+      parameters:
+        - $ref: "#/components/parameters/TaskIdPath"
+      responses:
+        "204":
+          description: Sem conteúdo
+  /infocar/agregados-b/{tipo}/{valor}:
+    get:
+      summary: Consultar Agregados B (Infocar)
+      description: |
+        Consulta dados de emplacamento (Agregados B). Requer header `X-User-Id`.
+        Debita 1 unidade do saldo do usuário (mock).
+      parameters:
+        - name: tipo
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [placa, chassi, motor]
+        - name: valor
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-User-Id
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Resposta Infocar
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgregadosBResponse"
+        "400":
+          description: Erro de validação ou saldo insuficiente
+        "401":
+          description: Header ausente
+components:
+  parameters:
+    UserIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    TaskIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+    UserIdQuery:
+      name: userId
+      in: query
+      required: true
+      schema:
+        type: string
+  schemas:
+    UserInput:
+      type: object
+      required: [name, email]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        balance:
+          type: integer
+          format: int64
+          description: Saldo mock para consultas Infocar.
+    User:
+      allOf:
+        - $ref: "#/components/schemas/UserInput"
+        - type: object
+          properties:
+            id:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+    TaskInput:
+      type: object
+      required: [userId, title]
+      properties:
+        userId:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        done:
+          type: boolean
+    Task:
+      allOf:
+        - $ref: "#/components/schemas/TaskInput"
+        - type: object
+          properties:
+            id:
+              type: string
+    AgregadosBResponse:
+      type: object
+      properties:
+        solicitacao:
+          type: object
+          additionalProperties: true
+        retorno:
+          type: object
+          additionalProperties: true
+        dados:
+          type: object
+          additionalProperties: true
