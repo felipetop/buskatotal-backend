@@ -21,14 +21,9 @@ func NewAuthService(repo user.Repository, jwtSecret string, tokenTTL time.Durati
     return &AuthService{repo: repo, jwtSecret: []byte(jwtSecret), tokenTTL: tokenTTL}
 }
 
-type AuthResult struct {
-    User  user.User
-    Token string
-}
-
-func (s *AuthService) Register(ctx context.Context, name, email, password string) (AuthResult, error) {
+func (s *AuthService) Register(ctx context.Context, name, email, password string) (user.User, string, error) {
     if email == "" || password == "" {
-        return AuthResult{}, errors.New("email and password are required")
+        return user.User{}, "", errors.New("email and password are required")
     }
 
     if name == "" {
@@ -36,12 +31,12 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
     }
 
     if _, err := s.repo.GetByEmail(ctx, email); err == nil {
-        return AuthResult{}, errors.New("email already registered")
+        return user.User{}, "", errors.New("email already registered")
     }
 
     hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
     if err != nil {
-        return AuthResult{}, errors.New("could not hash password")
+        return user.User{}, "", errors.New("could not hash password")
     }
 
     created, err := s.repo.Create(ctx, user.User{
@@ -50,37 +45,37 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
         PasswordHash: string(hash),
     })
     if err != nil {
-        return AuthResult{}, err
+        return user.User{}, "", err
     }
 
     token, err := s.generateToken(created.ID)
     if err != nil {
-        return AuthResult{}, err
+        return user.User{}, "", err
     }
 
-    return AuthResult{User: created, Token: token}, nil
+    return created, token, nil
 }
 
-func (s *AuthService) Login(ctx context.Context, email, password string) (AuthResult, error) {
+func (s *AuthService) Login(ctx context.Context, email, password string) (user.User, string, error) {
     if email == "" || password == "" {
-        return AuthResult{}, errors.New("email and password are required")
+        return user.User{}, "", errors.New("email and password are required")
     }
 
     entity, err := s.repo.GetByEmail(ctx, email)
     if err != nil {
-        return AuthResult{}, errors.New("invalid credentials")
+        return user.User{}, "", errors.New("invalid credentials")
     }
 
     if err := bcrypt.CompareHashAndPassword([]byte(entity.PasswordHash), []byte(password)); err != nil {
-        return AuthResult{}, errors.New("invalid credentials")
+        return user.User{}, "", errors.New("invalid credentials")
     }
 
     token, err := s.generateToken(entity.ID)
     if err != nil {
-        return AuthResult{}, err
+        return user.User{}, "", err
     }
 
-    return AuthResult{User: entity, Token: token}, nil
+    return entity, token, nil
 }
 
 func (s *AuthService) generateToken(userID string) (string, error) {
