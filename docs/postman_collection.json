@@ -1,0 +1,2321 @@
+{
+  "info": {
+    "_postman_id": "REDACTED",
+    "name": "Infocar API Collection",
+    "description": "### Tipo de Acesso:\n\nVisualização da documentação.\n\n### Método de Acesso a partir de Variáveis\n\n**1º Passo:**  \nImporte esse documento para o Postman.\n\n**2º Passo:**  \nClique na pasta com o nome da sua empresa e vá em \"Variables\".\n\n**3º Passo:**  \nNa coluna \"Initial Value\", preencha os campos solicitados na coluna \"Variable\", que são `infocar-id-Key`, `usuario` e `senha`. Os outros campos não precisam ser preenchidos.\n\n**4º Passo:** Na coluna \"Current Value\", preencha também os campos `infocar-id-Key`, `usuario` e `senha`.\n\n**5º Passo:** Depois de preencher as colunas com as informações necessárias, clique em 'Save' para salvar os dados.  \n**6º Passo:** Vá para a API `token` na pasta `\"Gerar token\"`. Após isso, aperte Ctrl + Enter ou clique em `\"SEND\"`. Feito isso, seu usuário e senha serão convertidos para `Base64`, o token de acesso será gerado e automaticamente colocado no campo `\"Authorization\"` e o `ID` no campo `\"Headers\"`.\n\n### Método de Acesso a partir de Inserção Manual\n\n**1º Passo:**  \nConverter usuário e senha para Base64:  \nUsuário: `uteste`  \nSenha: `steste`  \nConversão: `uteste:steste` => `dXRlc3RlOnN0ZXN0ZQ==`  \nVocê pode usar o site [ostermiller.org](http://ostermiller.org/calc/encode.html) para executar a criptografia em Base64.  \n_Obs.: O usuário “info” da internet não é o mesmo para acesso via Web Service._\n\n**2º Passo:**  \nGerar token:  \nCom o usuário e senha convertidos em Base64, utilize a API token e coloque a conversão entre aspas `\"\"`.\n\n**3º Passo:**  \nHabilitar autorização:  \nNas APIs contratadas, vá em \"Authorization\", depois em \"Type\", selecione \"Bearer Token\" e insira o token gerado no 2º Passo.  \nApós isso, vá em \"Headers\", no campo \"Key\" coloque `infocar-id-Key` e no campo \"Value\" coloque seu número de ID.\n\n### Informação Importante\n\nO token fica ativo por um período de 08 horas. Após esse período, será necessário gerar novamente o token de acesso.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "REDACTED",
+    "_collection_link": "REDACTED"
+  },
+  "item": [
+    {
+      "name": "Gerar token",
+      "item": [
+        {
+          "name": "token",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var CryptoJS = require(\"crypto-js\")\r",
+                  "\r",
+                  "//Encrypt\r",
+                  "var usuario = pm.collectionVariables.get(\"usuario\");\r",
+                  "var senha = pm.collectionVariables.get(\"senha\");\r",
+                  "\r",
+                  "var usuarioSenha = usuario + \":\" + senha;\r",
+                  "console.log(usuarioSenha);\r",
+                  "\r",
+                  "var rawStr = CryptoJS.enc.Utf8.parse(usuarioSenha)\r",
+                  "var base64 = CryptoJS.enc.Base64.stringify(rawStr)\r",
+                  "console.log(`Encrypted value: ${base64}`)\r",
+                  "pm.collectionVariables.set(\"variables\", JSON.stringify(base64))\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {\r",
+                  "  pm.response.to.have.status(200);\r",
+                  "});\r",
+                  "\r",
+                  "// Armazenar o token gerado\r",
+                  "const responseJson = pm.response.json();\r",
+                  "pm.collectionVariables.set(\"token\", responseJson.token);\r",
+                  "\r",
+                  "console.log(responseJson.token);3"
+                ],
+                "type": "text/javascript",
+                "packages": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"chave\": {{variables}}\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.datacast3.com/api/Token/GerarToken",
+              "protocol": "https",
+              "host": [
+                "api",
+                "datacast3",
+                "com"
+              ],
+              "path": [
+                "api",
+                "Token",
+                "GerarToken"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "token",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"chave\": \"5a1gfvc123d1ccr1e61g5v13\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "https://api.datacast3.com/api/Token/GerarToken",
+                  "protocol": "https",
+                  "host": [
+                    "api",
+                    "datacast3",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "Token",
+                    "GerarToken"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Mon, 11 Jul 2022 19:38:12 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "ASP.NET"
+                },
+                {
+                  "key": "CF-Cache-Status",
+                  "value": "DYNAMIC"
+                },
+                {
+                  "key": "Expect-CT",
+                  "value": "max-age=604800, report-uri=\"https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct\""
+                },
+                {
+                  "key": "Report-To",
+                  "value": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v3?s=v9u6onp1O9jx7H9VHx1h8p4hu1hUM4HjLRhnKgqXOmacv3N%2BhxWBOvkgNwaPnUp8pbRtMJQy%2FNy1nBYDTrZ4HxJj0ES9d1uGNlDliaBNB7QP8PnwueuxYAylTcQKDkTgDrzN\"}],\"group\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "NEL",
+                  "value": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "Server",
+                  "value": "cloudflare"
+                },
+                {
+                  "key": "CF-RAY",
+                  "value": "7293ff81cca6a670-GRU"
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"status\": \"ok\",\n    \"message\": \"sucesso\",\n    \"nome\": \"USUARIO DE TESTE DA INFOCAR\",\n    \"descricao\": \"CHAVE DE TESTE\",\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZF91c2VyIjoiMSIsImRlc2MiOiJDSEFWRSBERSBURVNURSIsInVzZXJfbmFtZSI6IlVTVUFSSU8gREUgVEVTVEUgREEgSU5GT0NBUiIsIm5iZiI6MTY1NzU4MjU2MSwiZXhwIjoxNjU3NjExMzYxLCJpYXQiOjE2NTc1ODI1NjF9.lNEMDUZsmrcGJIsAwJMhQlZG1Cy4QWfcekwxODErIrg\",\n    \"segundos\": 28799\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Agregados B - AG - V39 Copy",
+      "item": [
+        {
+          "name": "chassi",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "infocar-id-Key",
+                "value": "{{infocar-id-Key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.datacast3.com/api/v1.0/AgregadosB/chassi/",
+              "protocol": "https",
+              "host": [
+                "api",
+                "datacast3",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v1.0",
+                "AgregadosB",
+                "chassi",
+                ""
+              ]
+            },
+            "description": "Para fazer a requisição siga a 3º etapa ensinada acima, após isso coloque o Endpoint e na parte **chassi/** no fim do Endpoint você ira colocar o número do CHASSI, como mostra no exemplo a baixo."
+          },
+          "response": [
+            {
+              "name": "Exemplo requisição por chassi",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "infocar-id-Key",
+                    "value": "{{infocar-id-Key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "https://api.datacast3.com/api/v1.0/AgregadosB/chassi/8AC9036625A927681",
+                  "protocol": "https",
+                  "host": [
+                    "api",
+                    "datacast3",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "v1.0",
+                    "AgregadosB",
+                    "chassi",
+                    "8AC9036625A927681"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Tue, 23 Aug 2022 20:39:56 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "ASP.NET"
+                },
+                {
+                  "key": "CF-Cache-Status",
+                  "value": "DYNAMIC"
+                },
+                {
+                  "key": "Expect-CT",
+                  "value": "max-age=604800, report-uri=\"https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct\""
+                },
+                {
+                  "key": "Report-To",
+                  "value": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v3?s=Oxyyhk2spW5oMmdOmcfZ%2F4DlAmtuFpni8BO8jA7hHFQaGl1Gl%2FljzuEMInmemK5FADvzn6HQMPQAYd%2FD4jimS%2FP2rMFXqBAUzNC%2Fzk92pL%2FIpDfzzkgtSqaWmVdXKoEwFCSd\"}],\"group\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "NEL",
+                  "value": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "Server",
+                  "value": "cloudflare"
+                },
+                {
+                  "key": "CF-RAY",
+                  "value": "73f6a90d0a64a5fb-GRU"
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"solicitacao\": {\n        \"horaSolicitacao\": \"2022-08-23 17:35:52.133317\",\n        \"ip\": \"172.71.6.179\",\n        \"nomeConsulta\": \"Agregados B\",\n        \"tipoDado\": \"CHASSI\",\n        \"dado\": \"8AC9036625A927681\",\n        \"nomeUsuario\": \"USUARIO DE TESTE DA INFOCAR\",\n        \"descricaoChave\": \"CHAVE DE TESTE\",\n        \"versaoConsulta\": \"V1\"\n    },\n    \"retorno\": {\n        \"numeroResposta\": \"cdc3537d-e9b1-46b9-baf1-f13b690d1345\",\n        \"mensagem\": 1,\n        \"tempoProcessamento\": 0.2168705,\n        \"descricao\": \"Consulta realizada com sucesso\",\n        \"dataRetorno\": \"2022-08-23 17:35:52.350188\"\n    },\n    \"dados\": {\n        \"dadosDoVeiculoCompleto\": {\n            \"placa\": \"DBM6158\",\n            \"chassi\": \"8AC9036625A927681\",\n            \"modelo\": \"313CDI SPRINTER M\",\n            \"anoFabricacao\": 0,\n            \"anoModelo\": 0,\n            \"cor\": \"BRANCA\",\n            \"combustivel\": \"DIESEL\",\n            \"uf\": \"SP\",\n            \"municipio\": \"GUARULHOS\",\n            \"tipoVeiculo\": \"CAMINHAO\",\n            \"motor\": \"61198170027405\",\n            \"numeroCaixaCambio\": \"71162011404181\",\n            \"numeroEixoTraseiroDiferencial\": \"7414091041766\",\n            \"procedencia\": \"IMPORTADO\",\n            \"situacaoChassi\": \"\",\n            \"capacidadeDeCarga\": \"15\",\n            \"potencia\": \"129\",\n            \"numeroCilindradas\": \"\",\n            \"capacidadeDePassageiros\": \"\",\n            \"tipoMontagem\": \"COMPLETA\",\n            \"quantidadeDeEixos\": \"2\",\n            \"cmt\": \"500\",\n            \"pbt\": \"350\",\n            \"carroceria\": \"FURGAO\",\n            \"numeroCarroceria\": \"\"\n        }\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "motor",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "infocar-id-Key",
+                "value": "{{infocar-id-Key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.datacast3.com/api/v1.0/AgregadosB/motor/",
+              "protocol": "https",
+              "host": [
+                "api",
+                "datacast3",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v1.0",
+                "AgregadosB",
+                "motor",
+                ""
+              ]
+            },
+            "description": "Para fazer a requisição siga a 3º etapa ensinada acima, após isso coloque o Endpoint e na parte **motor/** no fim do Endpoint você ira colocar o numero do MOTOR, como mostra no exemplo a baixo."
+          },
+          "response": [
+            {
+              "name": "Exemplo requisição por motor",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "infocar-id-Key",
+                    "value": "{{infocar-id-Key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "https://api.datacast3.com/api/v1.0/AgregadosB/motor/61198170027405",
+                  "protocol": "https",
+                  "host": [
+                    "api",
+                    "datacast3",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "v1.0",
+                    "AgregadosB",
+                    "motor",
+                    "61198170027405"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Tue, 23 Aug 2022 20:40:33 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "ASP.NET"
+                },
+                {
+                  "key": "CF-Cache-Status",
+                  "value": "DYNAMIC"
+                },
+                {
+                  "key": "Expect-CT",
+                  "value": "max-age=604800, report-uri=\"https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct\""
+                },
+                {
+                  "key": "Report-To",
+                  "value": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v3?s=aG4hyISxeSsj78CKsiym7pl6Mqa9It6RXqwWYT30H6Z7u8YSAHuTBW%2B4bMrfZRDv%2FOcuterxx2m1OdEZRkbwi2RAa40A0AKndKtyJrIGDhwQVBZcvHmtjo7tmietO2yCk2xY\"}],\"group\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "NEL",
+                  "value": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "Server",
+                  "value": "cloudflare"
+                },
+                {
+                  "key": "CF-RAY",
+                  "value": "73f6a9e178dba5fb-GRU"
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"solicitacao\": {\n        \"horaSolicitacao\": \"2022-08-23 17:36:26.130495\",\n        \"ip\": \"172.71.6.179\",\n        \"nomeConsulta\": \"Agregados B\",\n        \"tipoDado\": \"MOTOR\",\n        \"dado\": \"61198170027405\",\n        \"nomeUsuario\": \"USUARIO DE TESTE DA INFOCAR\",\n        \"descricaoChave\": \"CHAVE DE TESTE\",\n        \"versaoConsulta\": \"V1\"\n    },\n    \"retorno\": {\n        \"numeroResposta\": \"258bbdc3-6b1d-4ae0-b956-b80482b8e0bd\",\n        \"mensagem\": 1,\n        \"tempoProcessamento\": 3.2892288,\n        \"descricao\": \"Consulta realizada com sucesso\",\n        \"dataRetorno\": \"2022-08-23 17:36:29.419723\"\n    },\n    \"dados\": {\n        \"dadosDoVeiculoCompleto\": {\n            \"placa\": \"DBM6158\",\n            \"chassi\": \"8AC9036625A927681\",\n            \"modelo\": \"313CDI SPRINTER M\",\n            \"anoFabricacao\": 0,\n            \"anoModelo\": 0,\n            \"cor\": \"BRANCA\",\n            \"combustivel\": \"DIESEL\",\n            \"uf\": \"SP\",\n            \"municipio\": \"GUARULHOS\",\n            \"tipoVeiculo\": \"CAMINHAO\",\n            \"motor\": \"61198170027405\",\n            \"numeroCaixaCambio\": \"71162011404181\",\n            \"numeroEixoTraseiroDiferencial\": \"7414091041766\",\n            \"procedencia\": \"IMPORTADO\",\n            \"situacaoChassi\": \"\",\n            \"capacidadeDeCarga\": \"15\",\n            \"potencia\": \"129\",\n            \"numeroCilindradas\": \"\",\n            \"capacidadeDePassageiros\": \"\",\n            \"tipoMontagem\": \"COMPLETA\",\n            \"quantidadeDeEixos\": \"2\",\n            \"cmt\": \"500\",\n            \"pbt\": \"350\",\n            \"carroceria\": \"FURGAO\",\n            \"numeroCarroceria\": \"\"\n        }\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "placa",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "infocar-id-Key",
+                "value": "{{infocar-id-Key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.datacast3.com/api/v1.0/AgregadosB/placa/",
+              "protocol": "https",
+              "host": [
+                "api",
+                "datacast3",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v1.0",
+                "AgregadosB",
+                "placa",
+                ""
+              ]
+            },
+            "description": "Para fazer a requisição siga a 3º etapa ensinada acima, após isso coloque o Endpoint e na parte **placa/** no fim do Endpoint você ira colocar a PLACA, como mostra no exemplo a baixo."
+          },
+          "response": [
+            {
+              "name": "Exemplo requisição por placa",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "infocar-id-Key",
+                    "value": "{{infocar-id-Key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "https://api.datacast3.com/api/v1.0/AgregadosB/placa/eve2814",
+                  "protocol": "https",
+                  "host": [
+                    "api",
+                    "datacast3",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "v1.0",
+                    "AgregadosB",
+                    "placa",
+                    "eve2814"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Tue, 23 Aug 2022 20:41:03 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "ASP.NET"
+                },
+                {
+                  "key": "CF-Cache-Status",
+                  "value": "DYNAMIC"
+                },
+                {
+                  "key": "Expect-CT",
+                  "value": "max-age=604800, report-uri=\"https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct\""
+                },
+                {
+                  "key": "Report-To",
+                  "value": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v3?s=FkyqGW70wI%2BlM3F%2FbQsvV3C%2FOkU4JA5WceuqK9XW6jVJIC5iSSuCxdbhM42nX2wWTwfcgMjsNrDVyaDJs7buQnDYQwUfrIjEZwOkucjfW2vlrqWP3gyNecPqhPV58WyqFjxE\"}],\"group\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "NEL",
+                  "value": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "Server",
+                  "value": "cloudflare"
+                },
+                {
+                  "key": "CF-RAY",
+                  "value": "73f6aab14f41a5fb-GRU"
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"solicitacao\": {\n        \"horaSolicitacao\": \"2022-08-23 17:36:59.393815\",\n        \"ip\": \"172.71.6.179\",\n        \"nomeConsulta\": \"Agregados B\",\n        \"tipoDado\": \"PLACA\",\n        \"dado\": \"eve2814\",\n        \"nomeUsuario\": \"USUARIO DE TESTE DA INFOCAR\",\n        \"descricaoChave\": \"CHAVE DE TESTE\",\n        \"versaoConsulta\": \"V1\"\n    },\n    \"retorno\": {\n        \"numeroResposta\": \"b0dfe9c1-a073-43ce-a3d1-bdec17c3e485\",\n        \"mensagem\": 1,\n        \"tempoProcessamento\": 0.1821579,\n        \"descricao\": \"Consulta realizada com sucesso\",\n        \"dataRetorno\": \"2022-08-23 17:36:59.575973\"\n    },\n    \"dados\": {\n        \"dadosDoVeiculoCompleto\": {\n            \"placa\": \"eve2814\",\n            \"chassi\": \"9BM693388DB917123\",\n            \"modelo\": \"M.BENZ/ATRON 2729 K 6X4\",\n            \"anoFabricacao\": 0,\n            \"anoModelo\": 0,\n            \"cor\": \"BRANCA\",\n            \"combustivel\": \"DIESEL\",\n            \"uf\": \"SP\",\n            \"municipio\": \"IACANGA\",\n            \"tipoVeiculo\": \"CAMINHAO\",\n            \"motor\": \"926989U1064552\",\n            \"numeroCaixaCambio\": \"71556301279641\",\n            \"numeroEixoTraseiroDiferencial\": \"741930S0949639\",\n            \"procedencia\": \"NACIONAL\",\n            \"situacaoChassi\": \"\",\n            \"capacidadeDeCarga\": \"1500\",\n            \"potencia\": \"286\",\n            \"numeroCilindradas\": \"\",\n            \"capacidadeDePassageiros\": \"\",\n            \"tipoMontagem\": \"COMPLETA\",\n            \"quantidadeDeEixos\": \"3\",\n            \"cmt\": \"4510\",\n            \"pbt\": \"2300\",\n            \"carroceria\": \"BASCULANTE\",\n            \"numeroCarroceria\": \"SP0B21028.0D00021\"\n        }\n    }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Leilão Essencial - LS - L03 Copy",
+      "item": [
+        {
+          "name": "chassi",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "infocar-id-Key",
+                "value": "{{infocar-id-Key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.datacast3.com/api/v1.0/LeilaoEssencial/chassi/",
+              "protocol": "https",
+              "host": [
+                "api",
+                "datacast3",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v1.0",
+                "LeilaoEssencial",
+                "chassi",
+                ""
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Exemplo requisição por chassi",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "infocar-id-Key",
+                    "value": "{{infocar-id-Key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "https://api.datacast3.com/api/v1.0/LeilaoEssencial/chassi/93HGE6860BZ115043",
+                  "protocol": "https",
+                  "host": [
+                    "api",
+                    "datacast3",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "v1.0",
+                    "LeilaoEssencial",
+                    "chassi",
+                    "93HGE6860BZ115043"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Tue, 26 Jul 2022 15:12:28 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "ASP.NET"
+                },
+                {
+                  "key": "CF-Cache-Status",
+                  "value": "DYNAMIC"
+                },
+                {
+                  "key": "Expect-CT",
+                  "value": "max-age=604800, report-uri=\"https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct\""
+                },
+                {
+                  "key": "Report-To",
+                  "value": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v3?s=vcliIdhFGXYRDuWfDQPJ3oVmEx3P1W9FwxKLvolkTgn936EkDQkq1SscD8PPDnaYz3BxJ4K31auGVTQwkeEpcq5c9QRzAbAVVEQ2%2BIsU6i4X2iPqQSos2paSGl1c3eMu5KwO\"}],\"group\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "NEL",
+                  "value": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "Server",
+                  "value": "cloudflare"
+                },
+                {
+                  "key": "CF-RAY",
+                  "value": "730e12d2dc29263a-GIG"
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"solicitacao\": {\n        \"horaSolicitacao\": \"2022-07-26 12:10:17.743561\",\n        \"ip\": \"172.69.3.222\",\n        \"nomeConsulta\": \"Leilão Essencial\",\n        \"tipoDado\": \"CHASSI\",\n        \"dado\": \"93HGE6860BZ115043\",\n        \"nomeUsuario\": \"USUARIO DE TESTE DA INFOCAR\",\n        \"descricaoChave\": \"CHAVE DE TESTE\",\n        \"versaoConsulta\": \"V1\"\n    },\n    \"retorno\": {\n        \"numeroResposta\": \"04fe7eaf-2c5e-4172-837d-db2a6c56a8da\",\n        \"mensagem\": 1,\n        \"tempoProcessamento\": 2.686151,\n        \"descricao\": \"Consulta realizada com sucesso\",\n        \"dataRetorno\": \"2022-07-26 12:10:20.429712\"\n    },\n    \"dados\": {\n        \"dadosDoVeiculo\": {\n            \"placa\": \"NRJ4984\",\n            \"chassi\": \"93HGE6860BZ115043\",\n            \"renavam\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"modelo\": \"HONDA/FIT_LXL_FLEX\",\n            \"anoFabricacao\": 2011,\n            \"anoModelo\": 2011,\n            \"cor\": \"CINZA\",\n            \"combustivel\": \"ALCOOL_/_GASOLINA\",\n            \"municipio\": \"CAMPO_GRANDE\",\n            \"origemEmplacamento\": \"MATO_GROSSO_DO_SUL_MS_2_sequencia\",\n            \"tipoVeiculo\": \"AUTOMOVEL\"\n        },\n        \"informacoesTecnicasAdcionais\": {\n            \"motor\": \"L13Z3-1115034\",\n            \"numeroCaixaCambio\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"capacidadeDePassageiros\": \"5\",\n            \"potencia\": \"101\",\n            \"quantidadeDeEixos\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"capacidadeDeCarga\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"cmt\": \"1\",\n            \"pbt\": \"149\",\n            \"carroceria\": \"NAO_APLICAVEL\",\n            \"numeroCarroceria\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"numeroEixoTraseiroDiferencial\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"numeroTerceiroEixo\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"numeroCilindradas\": \"1339\",\n            \"especie\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"categoria\": \"AUTOMOVEL\",\n            \"procedencia\": \"NACIONAL\",\n            \"dataAtualizacao\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"situacaoChassi\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"tipoDocFaturado\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"documentoFaturado\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"ufFaturado\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\"\n        },\n        \"dadosDoVeiculoLeilao\": {\n            \"placa\": \"NRJ4984\",\n            \"chassi\": \"93HGE6860BZ115043\",\n            \"renavam\": \"00293200785\",\n            \"modelo\": \"HONDA/FIT LXL FLEX\",\n            \"anoFabricacao\": 2011,\n            \"anoModelo\": 2011,\n            \"cor\": \"CINZA\",\n            \"segmento\": \"AUTO\",\n            \"subSegmento\": \"AU - MONOCAB\",\n            \"motor\": \"L13Z3-1115034\",\n            \"numeroCaixaCambio\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n            \"numeroCarroceria\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n            \"numeroEixoTraseiroDiferencial\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n            \"quantidadeDeEixos\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\"\n        },\n        \"score\": \"3\",\n        \"registrosLeilao\": [\n            {\n                \"leiloeiro\": \"N/I\",\n                \"comitente\": \"LIBERTY_INDIANA_SEGUROS\",\n                \"lote\": \"2\",\n                \"dataLeilao\": \"25/05/2021\",\n                \"condicoesVeiculo\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"situacaoChassi\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"condicoesMotor\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"condicoesCambio\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"condicoesMecanica\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"observacao\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\"\n            },\n            {\n                \"leiloeiro\": \"N/I\",\n                \"comitente\": \"LIBERTY_INDIANA_SEGUROS\",\n                \"lote\": \"27\",\n                \"dataLeilao\": \"02/06/2021\",\n                \"condicoesVeiculo\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"situacaoChassi\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"condicoesMotor\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"condicoesCambio\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"condicoesMecanica\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"observacao\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\"\n            }\n        ],\n        \"dadosDoVeiculoRemarketing\": null,\n        \"registrosRemarketing\": null,\n        \"inspecaoVeicular\": null,\n        \"checklistVeiculo\": null,\n        \"fotos\": null,\n        \"ratingSeguridade\": {\n            \"aceitacaoSeguro\": {\n                \"indicadorProbabilidade\": \"61\",\n                \"descricao\": \"COM BASE EM ESTUDO ESTATISTICO, A REGUA ACIMA APONTA A PROBABILIDADE DE 0 A 100% DO VEICULO SER SEGURADO NAS PRINCIPAIS SEGURADORAS DO PAIS.\"\n            },\n            \"fipeParcial\": {\n                \"indicadorProbabilidade\": \"90\",\n                \"descricao\": \"COM BASE EM ESTUDO ESTATISTICO, A REGUA ACIMA APONTA O POSSIVEL PERCENTUAL DA TABELA DE REFERENCIA _FIPE_ UTILIZADA PELA SEGURADORA NO MOMENTO DA CONTRATACAO DO SEGURO DO BEM.\"\n            },\n            \"vistoriaEspecial\": {\n                \"indicadorProbabilidade\": \"MAIOR PROBABILIDADE\",\n                \"descricao\": \"COM BASE EM ESTUDO ESTATISTICO, A REGUA ACIMA APONTA A MENOR OU MAIOR PROBABILIDADE DE EXIGENCIA DE VISTORIA ESPECIAL POR PARTE DA SEGURADORA.\"\n            }\n        },\n        \"indicioSinistro\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\"\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "placa",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "infocar-id-Key",
+                "value": "{{infocar-id-Key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.datacast3.com/api/v1.0/LeilaoEssencial/placa/",
+              "protocol": "https",
+              "host": [
+                "api",
+                "datacast3",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v1.0",
+                "LeilaoEssencial",
+                "placa",
+                ""
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Exemplo requisição por placa",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "infocar-id-Key",
+                    "value": "{{infocar-id-Key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "https://api.datacast3.com/api/v1.0/LeilaoEssencial/placa/FZG4860",
+                  "protocol": "https",
+                  "host": [
+                    "api",
+                    "datacast3",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "v1.0",
+                    "LeilaoEssencial",
+                    "placa",
+                    "FZG4860"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Tue, 26 Jul 2022 15:12:03 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "ASP.NET"
+                },
+                {
+                  "key": "CF-Cache-Status",
+                  "value": "DYNAMIC"
+                },
+                {
+                  "key": "Expect-CT",
+                  "value": "max-age=604800, report-uri=\"https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct\""
+                },
+                {
+                  "key": "Report-To",
+                  "value": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v3?s=QXfpz%2FY85t4i02DAvv%2B0A9DgDjKCu%2FtHQ0LTBP5BBkv0i3d2FW1xh7esoar2ZNaXhxB2AbyTddkzLOM7ThsURTP0JKKxqdhbif%2FXwvTYFT%2FsgZmAT5ImvD1O%2Be%2FByU7CbbJr\"}],\"group\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "NEL",
+                  "value": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "Server",
+                  "value": "cloudflare"
+                },
+                {
+                  "key": "CF-RAY",
+                  "value": "730e1230ceb5263a-GIG"
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"solicitacao\": {\n        \"horaSolicitacao\": \"2022-07-26 12:09:51.973541\",\n        \"ip\": \"172.69.3.222\",\n        \"nomeConsulta\": \"Leilão Essencial\",\n        \"tipoDado\": \"PLACA\",\n        \"dado\": \"FZG4860\",\n        \"nomeUsuario\": \"USUARIO DE TESTE DA INFOCAR\",\n        \"descricaoChave\": \"CHAVE DE TESTE\",\n        \"versaoConsulta\": \"V1\"\n    },\n    \"retorno\": {\n        \"numeroResposta\": \"881f83e4-2a68-474f-a2e7-abf5947857ad\",\n        \"mensagem\": 1,\n        \"tempoProcessamento\": 2.635714,\n        \"descricao\": \"Consulta realizada com sucesso\",\n        \"dataRetorno\": \"2022-07-26 12:09:54.609255\"\n    },\n    \"dados\": {\n        \"dadosDoVeiculo\": {\n            \"placa\": \"FZG4860\",\n            \"chassi\": \"9BGCS80X0FB181924\",\n            \"renavam\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"modelo\": \"CHEVROLET/MONTANA_SPORT\",\n            \"anoFabricacao\": 2014,\n            \"anoModelo\": 2015,\n            \"cor\": \"BRANCA\",\n            \"combustivel\": \"ALCOOL_/_GASOLINA\",\n            \"municipio\": \"SAO_JOAQUIM_DA_BARRA\",\n            \"origemEmplacamento\": \"SAO_PAULO_SP_\",\n            \"tipoVeiculo\": \"CAMINHONETE\"\n        },\n        \"informacoesTecnicasAdcionais\": {\n            \"motor\": \"GB5022204\",\n            \"numeroCaixaCambio\": \"V14493939\",\n            \"capacidadeDePassageiros\": \"2\",\n            \"potencia\": \"102\",\n            \"quantidadeDeEixos\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"capacidadeDeCarga\": \"70\",\n            \"cmt\": \"300\",\n            \"pbt\": \"180\",\n            \"carroceria\": \"CARROCERIA_ABERTA\",\n            \"numeroCarroceria\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"numeroEixoTraseiroDiferencial\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"numeroTerceiroEixo\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"numeroCilindradas\": \"1400\",\n            \"especie\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"categoria\": \"CAMINHONETE\",\n            \"procedencia\": \"NACIONAL\",\n            \"dataAtualizacao\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"situacaoChassi\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"tipoDocFaturado\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"documentoFaturado\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n            \"ufFaturado\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\"\n        },\n        \"dadosDoVeiculoLeilao\": {\n            \"placa\": \"FZG4860\",\n            \"chassi\": \"9BGCS80X0FB181924\",\n            \"renavam\": \"00000000000\",\n            \"modelo\": \"CHEVROLET/MONTANA SPORT\",\n            \"anoFabricacao\": 2014,\n            \"anoModelo\": 2015,\n            \"cor\": \"BRANCA\",\n            \"segmento\": \"COMERCIAL LEVE\",\n            \"subSegmento\": \"CL - PICK-UP PEQUENA\",\n            \"motor\": \"GB5022204\",\n            \"numeroCaixaCambio\": \"V14493939\",\n            \"numeroCarroceria\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n            \"numeroEixoTraseiroDiferencial\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n            \"quantidadeDeEixos\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\"\n        },\n        \"score\": \"3\",\n        \"registrosLeilao\": [\n            {\n                \"leiloeiro\": \"N/I\",\n                \"comitente\": \"LIBERTY_INDIANA_SEGUROS\",\n                \"lote\": \"3\",\n                \"dataLeilao\": \"25/05/2021\",\n                \"condicoesVeiculo\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"situacaoChassi\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"condicoesMotor\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"condicoesCambio\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"condicoesMecanica\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"observacao\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\"\n            }\n        ],\n        \"dadosDoVeiculoRemarketing\": null,\n        \"registrosRemarketing\": null,\n        \"inspecaoVeicular\": null,\n        \"checklistVeiculo\": null,\n        \"fotos\": null,\n        \"ratingSeguridade\": {\n            \"aceitacaoSeguro\": {\n                \"indicadorProbabilidade\": \"61\",\n                \"descricao\": \"COM BASE EM ESTUDO ESTATISTICO, A REGUA ACIMA APONTA A PROBABILIDADE DE 0 A 100% DO VEICULO SER SEGURADO NAS PRINCIPAIS SEGURADORAS DO PAIS.\"\n            },\n            \"fipeParcial\": {\n                \"indicadorProbabilidade\": \"90\",\n                \"descricao\": \"COM BASE EM ESTUDO ESTATISTICO, A REGUA ACIMA APONTA O POSSIVEL PERCENTUAL DA TABELA DE REFERENCIA _FIPE_ UTILIZADA PELA SEGURADORA NO MOMENTO DA CONTRATACAO DO SEGURO DO BEM.\"\n            },\n            \"vistoriaEspecial\": {\n                \"indicadorProbabilidade\": \"MAIOR PROBABILIDADE\",\n                \"descricao\": \"COM BASE EM ESTUDO ESTATISTICO, A REGUA ACIMA APONTA A MENOR OU MAIOR PROBABILIDADE DE EXIGENCIA DE VISTORIA ESPECIAL POR PARTE DA SEGURADORA.\"\n            }\n        },\n        \"indicioSinistro\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\"\n    }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Base Estadual B - BEB - V12 Copy",
+      "item": [
+        {
+          "name": "chassi",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "infocar-id-key",
+                "value": "{{infocar-id-Key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.datacast3.com/api/v1.0/BaseEstadualB/chassi/",
+              "protocol": "https",
+              "host": [
+                "api",
+                "datacast3",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v1.0",
+                "BaseEstadualB",
+                "chassi",
+                ""
+              ]
+            },
+            "description": "Para fazer a requisição siga a 3º etapa ensinada acima, após isso coloque o Endpoint e na parte **chassi/** no fim do Endpoint você ira colocar o número do CHASSI, como mostra no exemplo a baixo."
+          },
+          "response": [
+            {
+              "name": "Exemplo requisição por chassi",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "infocar-id-key",
+                    "value": "{{infocar-id-Key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "https://api.datacast3.com/api/v1.0/BaseEstadualB/chassi/9BHBG51DAFP312866",
+                  "protocol": "https",
+                  "host": [
+                    "api",
+                    "datacast3",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "v1.0",
+                    "BaseEstadualB",
+                    "chassi",
+                    "9BHBG51DAFP312866"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Thu, 07 Jul 2022 20:25:25 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "ASP.NET"
+                },
+                {
+                  "key": "CF-Cache-Status",
+                  "value": "DYNAMIC"
+                },
+                {
+                  "key": "Expect-CT",
+                  "value": "max-age=604800, report-uri=\"https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct\""
+                },
+                {
+                  "key": "Report-To",
+                  "value": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v3?s=fkG7Di0VAEI08kayoOrlcK9K7aGuk1MmDI0qn6dmQ8z8Ezvz4X4nx086X%2BGMds6zTCYhu2HXqrcXOv9wo9KHUeBrwX%2B%2B%2BEA2%2BIOia4VDJ5K0n1ugYIhBqfI7Ro%2FjVh6uM4hd\"}],\"group\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "NEL",
+                  "value": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "Server",
+                  "value": "cloudflare"
+                },
+                {
+                  "key": "CF-RAY",
+                  "value": "72734f216b6d25f7-GIG"
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"solicitacao\": {\n        \"horaSolicitacao\": \"2022-07-07 17:23:11.565809\",\n        \"ip\": \"162.158.193.251\",\n        \"nomeConsulta\": \"Base Estadual B\",\n        \"tipoDado\": \"CHASSI\",\n        \"dado\": \"9BHBG51DAFP312866\",\n        \"nomeUsuario\": \"USUARIO DE TESTE DA INFOCAR\",\n        \"descricaoChave\": \"CHAVE DE TESTE\",\n        \"versaoConsulta\": \"V1\"\n    },\n    \"retorno\": {\n        \"numeroResposta\": \"035cb867-224f-4091-9234-e44b545ffc82\",\n        \"mensagem\": 1,\n        \"tempoProcessamento\": 1.831025,\n        \"descricao\": \"Consulta realizada com sucesso\",\n        \"dataRetorno\": \"2022-07-07 17:23:13.396834\"\n    },\n    \"dados\": {\n        \"dadosDoVeiculo\": {\n            \"placa\": \"AYT5E62\",\n            \"chassi\": \"9BHBG51DAFP312866\",\n            \"renavam\": \"01017712872\",\n            \"modelo\": \"HB20 1.6M COMF\",\n            \"anoFabricacao\": 2014,\n            \"anoModelo\": 2015,\n            \"cor\": \"BRANCA\",\n            \"combustivel\": \"ALCOOL/GASOLINA\",\n            \"uf\": \"SP\",\n            \"municipio\": \"OLIMPIA\",\n            \"origemEmplacamento\": \"PARANA _PR_\",\n            \"tipoVeiculo\": \"AUTOMOVEL\"\n        },\n        \"informacoesTecnicasAdcionais\": {\n            \"motor\": \"F4FAEU035796\",\n            \"numeroCaixaCambio\": \"TEU50D781666\",\n            \"capacidadeDePassageiros\": \"5\",\n            \"potencia\": \"128\",\n            \"quantidadeDeEixos\": \"2\",\n            \"capacidadeDeCarga\": \"0\",\n            \"cmt\": \"187\",\n            \"pbt\": \"147\",\n            \"carroceria\": \"\",\n            \"numeroCarroceria\": \"\",\n            \"numeroEixoTraseiroDiferencial\": \"\",\n            \"numeroTerceiroEixo\": \"\",\n            \"numeroCilindradas\": \"1591\",\n            \"especie\": \"PASSAGEIRO\",\n            \"categoria\": \"PARTICULAR\",\n            \"procedencia\": \"NACIONAL\",\n            \"dataAtualizacao\": \"\",\n            \"situacaoChassi\": \"NORMAL\",\n            \"tipoDocFaturado\": \"JURIDICA\",\n            \"documentoFaturado\": \"10394422000142\",\n            \"ufFaturado\": \"SP\"\n        },\n        \"restricoesImpedimentos\": {\n            \"situacaoVeiculo\": \"CIRCULACAO\",\n            \"rouboFurto\": \"\",\n            \"restricoes\": [],\n            \"intencaoDeGravame\": {\n                \"numeroContrato\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"codigoAgenteFinanceiro\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"dataVigenciaDoContrato\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"documentoArrendatario\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"restricaoFinanceira\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"agenteFinanceiro\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"nomeFinanciado\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"documentoFinanciado\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"dataInclusao\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\"\n            }\n        },\n        \"debitosEstaduais\": {\n            \"ipva\": \"00,00\",\n            \"licenciamento\": \"00,00\",\n            \"dpvat\": \"00,00\",\n            \"multas\": \"00,00\",\n            \"multasDetran\": \"00,00\",\n            \"multasCetesb\": \"00,00\",\n            \"multasMunicipais\": \"00,00\",\n            \"multasRenainf\": \"00,00\",\n            \"multasDersa\": \"00,00\",\n            \"multasDer\": \"00,00\",\n            \"multasPoliciaRodoviariaFederal\": \"00,00\",\n            \"dataLicenciamento\": \"18/04/2022\",\n            \"exercicioLicenciamento\": \"2022\"\n        },\n        \"comunicacaoDeVenda\": {\n            \"indicadorComunicacaoDeVenda\": \"NAO CONSTA COMUNICACAO DE VENDAS\",\n            \"dataComunicacao\": \"NAO CONSTAM INFORMACOES\",\n            \"dataVenda\": \"NAO CONSTAM INFORMACOES\"\n        },\n        \"proprietario\": {\n            \"nomeProprietario\": \"0 LALESCA LUIZA DORNELES\",\n            \"documento\": \"00000000000\"\n        }\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "placa",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "infocar-id-key",
+                "value": "{{infocar-id-Key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.datacast3.com/api/v1.0/BaseEstadualB/placa/",
+              "protocol": "https",
+              "host": [
+                "api",
+                "datacast3",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v1.0",
+                "BaseEstadualB",
+                "placa",
+                ""
+              ]
+            },
+            "description": "Para fazer a requisição siga a 3º etapa ensinada acima, após isso coloque o Endpoint e na parte **placa/** no fim do Endpoint você ira colocar o número do PLACA, como mostra no exemplo a baixo."
+          },
+          "response": [
+            {
+              "name": "Exemplo requisição por placa",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "infocar-id-key",
+                    "value": "{{infocar-id-Key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "https://api.datacast3.com/api/v1.0/BaseEstadualB/placa/DDY1441",
+                  "protocol": "https",
+                  "host": [
+                    "api",
+                    "datacast3",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "v1.0",
+                    "BaseEstadualB",
+                    "placa",
+                    "DDY1441"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Thu, 07 Jul 2022 20:27:31 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "ASP.NET"
+                },
+                {
+                  "key": "CF-Cache-Status",
+                  "value": "DYNAMIC"
+                },
+                {
+                  "key": "Expect-CT",
+                  "value": "max-age=604800, report-uri=\"https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct\""
+                },
+                {
+                  "key": "Report-To",
+                  "value": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v3?s=IBEPi1pAqZr0BiD9bFXZ7sgNKm8%2FT3%2B22F1xBnEM2GbqH4yDeR4IgZ1HHT3gY%2Blye1FgpirhRXl0Epq%2FVcbfBtC4l%2Bn4eDoeNVrdfVwKg92Hm%2FHBm%2FObiDdaN0pgxzprFBeB\"}],\"group\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "NEL",
+                  "value": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "Server",
+                  "value": "cloudflare"
+                },
+                {
+                  "key": "CF-RAY",
+                  "value": "7273523469bb25f7-GIG"
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"solicitacao\": {\n        \"horaSolicitacao\": \"2022-07-07 17:25:17.481135\",\n        \"ip\": \"162.158.193.251\",\n        \"nomeConsulta\": \"Base Estadual B\",\n        \"tipoDado\": \"PLACA\",\n        \"dado\": \"DDY1441\",\n        \"nomeUsuario\": \"USUARIO DE TESTE DA INFOCAR\",\n        \"descricaoChave\": \"CHAVE DE TESTE\",\n        \"versaoConsulta\": \"V1\"\n    },\n    \"retorno\": {\n        \"numeroResposta\": \"8e4ba5fc-ae4a-4e4b-9e84-49f131df0189\",\n        \"mensagem\": 1,\n        \"tempoProcessamento\": 1.7641654,\n        \"descricao\": \"Consulta realizada com sucesso\",\n        \"dataRetorno\": \"2022-07-07 17:25:19.245301\"\n    },\n    \"dados\": {\n        \"dadosDoVeiculo\": {\n            \"placa\": \"DDY1441\",\n            \"chassi\": \"9BR53AEB215527856\",\n            \"renavam\": \"00754390756\",\n            \"modelo\": \"COROLLA XEI\",\n            \"anoFabricacao\": 2001,\n            \"anoModelo\": 2001,\n            \"cor\": \"PRATA\",\n            \"combustivel\": \"GASOLINA\",\n            \"uf\": \"SP\",\n            \"municipio\": \"SAO PAULO\",\n            \"origemEmplacamento\": \"SAO PAULO _SP_\",\n            \"tipoVeiculo\": \"AUTOMOVEL\"\n        },\n        \"informacoesTecnicasAdcionais\": {\n            \"motor\": \"J044085\",\n            \"numeroCaixaCambio\": \"OLZ06409\",\n            \"capacidadeDePassageiros\": \"5\",\n            \"potencia\": \"114\",\n            \"quantidadeDeEixos\": \"2\",\n            \"capacidadeDeCarga\": \"0\",\n            \"cmt\": \"0\",\n            \"pbt\": \"120\",\n            \"carroceria\": \"\",\n            \"numeroCarroceria\": \"\",\n            \"numeroEixoTraseiroDiferencial\": \"\",\n            \"numeroTerceiroEixo\": \"\",\n            \"numeroCilindradas\": \"1762\",\n            \"especie\": \"PASSAGEIRO\",\n            \"categoria\": \"PARTICULAR\",\n            \"procedencia\": \"NACIONAL\",\n            \"dataAtualizacao\": \"\",\n            \"situacaoChassi\": \"NORMAL\",\n            \"tipoDocFaturado\": \"JURIDICA\",\n            \"documentoFaturado\": \"59104760000353\",\n            \"ufFaturado\": \"DF\"\n        },\n        \"restricoesImpedimentos\": {\n            \"situacaoVeiculo\": \"CIRCULACAO\",\n            \"rouboFurto\": \"\",\n            \"restricoes\": [],\n            \"intencaoDeGravame\": {\n                \"numeroContrato\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"codigoAgenteFinanceiro\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"dataVigenciaDoContrato\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"documentoArrendatario\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"restricaoFinanceira\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"agenteFinanceiro\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"nomeFinanciado\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"documentoFinanciado\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"dataInclusao\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\"\n            }\n        },\n        \"debitosEstaduais\": {\n            \"ipva\": \"3.458,49\",\n            \"licenciamento\": \"144,86\",\n            \"dpvat\": \"05,23\",\n            \"multas\": \"00,00\",\n            \"multasDetran\": \"00,00\",\n            \"multasCetesb\": \"00,00\",\n            \"multasMunicipais\": \"00,00\",\n            \"multasRenainf\": \"00,00\",\n            \"multasDersa\": \"00,00\",\n            \"multasDer\": \"00,00\",\n            \"multasPoliciaRodoviariaFederal\": \"00,00\",\n            \"dataLicenciamento\": \"15/08/2014\",\n            \"exercicioLicenciamento\": \"2014\"\n        },\n        \"comunicacaoDeVenda\": {\n            \"indicadorComunicacaoDeVenda\": \"NAO CONSTA COMUNICACAO DE VENDAS\",\n            \"dataComunicacao\": \"NAO CONSTAM INFORMACOES\",\n            \"dataVenda\": \"NAO CONSTAM INFORMACOES\"\n        },\n        \"proprietario\": {\n            \"nomeProprietario\": \"03344874000154 FARIA E FONTOURA COMERCIO DE ALIMENTOS LTDA ME\",\n            \"documento\": \"03344874000154\"\n        }\n    }\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Consulta feita por CHASSI ou PLACA."
+    },
+    {
+      "name": "Base Nacional B - BN - V09 Copy",
+      "item": [
+        {
+          "name": "chassi",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "infocar-id-Key",
+                "value": "{{infocar-id-Key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.datacast3.com/api/v1.0/BaseNacionalB/chassi/",
+              "protocol": "https",
+              "host": [
+                "api",
+                "datacast3",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v1.0",
+                "BaseNacionalB",
+                "chassi",
+                ""
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Exemplo requisição por chassi",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "infocar-id-Key",
+                    "value": "{{infocar-id-Key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "https://api.datacast3.com/api/v1.0/BaseNacionalB/chassi/9BWDB05U6BT194922",
+                  "protocol": "https",
+                  "host": [
+                    "api",
+                    "datacast3",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "v1.0",
+                    "BaseNacionalB",
+                    "chassi",
+                    "9BWDB05U6BT194922"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Mon, 25 Jul 2022 11:36:10 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "ASP.NET"
+                },
+                {
+                  "key": "CF-Cache-Status",
+                  "value": "DYNAMIC"
+                },
+                {
+                  "key": "Expect-CT",
+                  "value": "max-age=604800, report-uri=\"https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct\""
+                },
+                {
+                  "key": "Report-To",
+                  "value": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v3?s=fA5K6cGV5Gw7acT7XF98DnKa1uV%2BPGoN0jsAblSVRGNpZp6nzi4QE94FJqdtM7p0GVHlf7sBIIACRKOgwKTnqPs02Sn%2FErg5vqmCL3UQcyKMSFpIyXQ9thrTKm2Lfgf6Iaun\"}],\"group\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "NEL",
+                  "value": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "Server",
+                  "value": "cloudflare"
+                },
+                {
+                  "key": "CF-RAY",
+                  "value": "7304988aabee2590-GIG"
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"solicitacao\": {\n        \"horaSolicitacao\": \"2022-07-25 08:33:57.152299\",\n        \"ip\": \"172.69.3.222\",\n        \"nomeConsulta\": \"Base Nacional B\",\n        \"tipoDado\": \"CHASSI\",\n        \"dado\": \"9BWDB05U6BT194922\",\n        \"nomeUsuario\": \"USUARIO DE TESTE DA INFOCAR\",\n        \"descricaoChave\": \"CHAVE DE TESTE\",\n        \"versaoConsulta\": \"V1\"\n    },\n    \"retorno\": {\n        \"numeroResposta\": \"8b99d7fb-64f7-431c-9960-fa4403c90121\",\n        \"mensagem\": 1,\n        \"tempoProcessamento\": 4.5392805,\n        \"descricao\": \"Consulta realizada com sucesso\",\n        \"dataRetorno\": \"2022-07-25 08:34:01.691580\"\n    },\n    \"dados\": {\n        \"dadosDoVeiculo\": {\n            \"placa\": \"EQK8A38\",\n            \"chassi\": \"9BWDB05U6BT194922\",\n            \"renavam\": \"00273129430\",\n            \"modelo\": \"VOYAGE 1.6 TREND\",\n            \"anoFabricacao\": 2010,\n            \"anoModelo\": 2011,\n            \"cor\": \"PRATA\",\n            \"combustivel\": \"ALCOOL/GASOLINA\",\n            \"uf\": \"MG\",\n            \"municipio\": \"PORTEIRINHA\",\n            \"origemEmplacamento\": \"SAO PAULO _SP_\",\n            \"tipoVeiculo\": \"AUTOMOVEL\"\n        },\n        \"informacoesTecnicasAdcionais\": {\n            \"motor\": \"CCR971543\",\n            \"numeroCaixaCambio\": \"\",\n            \"capacidadeDePassageiros\": \"5\",\n            \"potencia\": \"104\",\n            \"quantidadeDeEixos\": \"2\",\n            \"capacidadeDeCarga\": \"0\",\n            \"cmt\": \"188\",\n            \"pbt\": \"148\",\n            \"carroceria\": \"INEXISTENTE\",\n            \"numeroCarroceria\": \"INEXISTENTE\",\n            \"numeroEixoTraseiroDiferencial\": \"\",\n            \"numeroTerceiroEixo\": \"\",\n            \"numeroCilindradas\": \"1598\",\n            \"especie\": \"PASSAGEIRO\",\n            \"categoria\": \"\",\n            \"procedencia\": \"NACIONAL\",\n            \"dataAtualizacao\": \"\",\n            \"situacaoChassi\": \"\",\n            \"tipoDocFaturado\": \"JURIDICA\",\n            \"documentoFaturado\": \"59.104.422/0024-46\",\n            \"ufFaturado\": \"\"\n        },\n        \"restricoesImpedimentos\": {\n            \"situacaoVeiculo\": \"CIRCULACAO\",\n            \"rouboFurto\": \"\",\n            \"restricoes\": [],\n            \"intencaoDeGravame\": {\n                \"numeroContrato\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"codigoAgenteFinanceiro\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"dataVigenciaDoContrato\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"documentoArrendatario\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"restricaoFinanceira\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"agenteFinanceiro\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"nomeFinanciado\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"documentoFinanciado\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"dataInclusao\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\"\n            }\n        }\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "placa",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "infocar-id-Key",
+                "value": "{{infocar-id-Key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.datacast3.com/api/v1.0/BaseNacionalB/placa/",
+              "protocol": "https",
+              "host": [
+                "api",
+                "datacast3",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v1.0",
+                "BaseNacionalB",
+                "placa",
+                ""
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Eemplo requisição por placa",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "infocar-id-Key",
+                    "value": "{{infocar-id-Key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "https://api.datacast3.com/api/v1.0/BaseNacionalB/placa/ATE2654",
+                  "protocol": "https",
+                  "host": [
+                    "api",
+                    "datacast3",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "v1.0",
+                    "BaseNacionalB",
+                    "placa",
+                    "ATE2654"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Mon, 25 Jul 2022 11:37:26 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "ASP.NET"
+                },
+                {
+                  "key": "CF-Cache-Status",
+                  "value": "DYNAMIC"
+                },
+                {
+                  "key": "Expect-CT",
+                  "value": "max-age=604800, report-uri=\"https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct\""
+                },
+                {
+                  "key": "Report-To",
+                  "value": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v3?s=rGZZLn31f2ULmg6k08mr2qAVP1Pi5qzQZf4UcXJCLCccfF90rtP5RUq5YAh2ePgS%2BLL4N9yReSa1EnUNYXDqbpQ6t9G%2FTJyUAAeePMqhCV15FXx0zydK73YzqoF%2BYyCHaxX2\"}],\"group\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "NEL",
+                  "value": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "Server",
+                  "value": "cloudflare"
+                },
+                {
+                  "key": "CF-RAY",
+                  "value": "73049a6d3f0d2590-GIG"
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"solicitacao\": {\n        \"horaSolicitacao\": \"2022-07-25 08:35:14.209140\",\n        \"ip\": \"172.69.3.222\",\n        \"nomeConsulta\": \"Base Nacional B\",\n        \"tipoDado\": \"PLACA\",\n        \"dado\": \"ATE2654\",\n        \"nomeUsuario\": \"USUARIO DE TESTE DA INFOCAR\",\n        \"descricaoChave\": \"CHAVE DE TESTE\",\n        \"versaoConsulta\": \"V1\"\n    },\n    \"retorno\": {\n        \"numeroResposta\": \"77fac178-2632-4595-9d8d-86662f075934\",\n        \"mensagem\": 1,\n        \"tempoProcessamento\": 3.863677,\n        \"descricao\": \"Consulta realizada com sucesso\",\n        \"dataRetorno\": \"2022-07-25 08:35:18.072817\"\n    },\n    \"dados\": {\n        \"dadosDoVeiculo\": {\n            \"placa\": \"ATE2654\",\n            \"chassi\": \"9BFZK53A7BB259455\",\n            \"renavam\": \"00253190657\",\n            \"modelo\": \"KA FLEX\",\n            \"anoFabricacao\": 2010,\n            \"anoModelo\": 2011,\n            \"cor\": \"VERMELHA\",\n            \"combustivel\": \"ALCOOL/GASOLINA\",\n            \"uf\": \"PR\",\n            \"municipio\": \"CURITIBA\",\n            \"origemEmplacamento\": \"PARANA _PR_\",\n            \"tipoVeiculo\": \"AUTOMOVEL\"\n        },\n        \"informacoesTecnicasAdcionais\": {\n            \"motor\": \"SMRBB259455\",\n            \"numeroCaixaCambio\": \"\",\n            \"capacidadeDePassageiros\": \"5\",\n            \"potencia\": \"73\",\n            \"quantidadeDeEixos\": \"2\",\n            \"capacidadeDeCarga\": \"0\",\n            \"cmt\": \"0\",\n            \"pbt\": \"141\",\n            \"carroceria\": \"INEXISTENTE\",\n            \"numeroCarroceria\": \"INEXISTENTE\",\n            \"numeroEixoTraseiroDiferencial\": \"\",\n            \"numeroTerceiroEixo\": \"\",\n            \"numeroCilindradas\": \"999\",\n            \"especie\": \"PASSAGEIRO\",\n            \"categoria\": \"\",\n            \"procedencia\": \"NACIONAL\",\n            \"dataAtualizacao\": \"\",\n            \"situacaoChassi\": \"\",\n            \"tipoDocFaturado\": \"JURIDICA\",\n            \"documentoFaturado\": \"76.061.902/0001-08\",\n            \"ufFaturado\": \"PR\"\n        },\n        \"restricoesImpedimentos\": {\n            \"situacaoVeiculo\": \"CIRCULACAO\",\n            \"rouboFurto\": \"\",\n            \"restricoes\": [],\n            \"intencaoDeGravame\": {\n                \"numeroContrato\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"codigoAgenteFinanceiro\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"dataVigenciaDoContrato\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"documentoArrendatario\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"restricaoFinanceira\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"agenteFinanceiro\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"nomeFinanciado\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"documentoFinanciado\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\",\n                \"dataInclusao\": \"NAO CONSTAM INFORMACOES NA BASE CONSULTADA\"\n            }\n        }\n    }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Gravame B - GR - V47 Copy",
+      "item": [
+        {
+          "name": "chassi",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "infocar-id-Key",
+                "value": "{{infocar-id-Key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.datacast3.com/api/v1.0/GravameB/chassi/",
+              "protocol": "https",
+              "host": [
+                "api",
+                "datacast3",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v1.0",
+                "GravameB",
+                "chassi",
+                ""
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Exemplo requisição por chassi",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "infocar-id-Key",
+                    "value": "{{infocar-id-Key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "https://api.datacast3.com/api/v1.0/GravameB/chassi/3N1BB7AE9LY203374",
+                  "protocol": "https",
+                  "host": [
+                    "api",
+                    "datacast3",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "v1.0",
+                    "GravameB",
+                    "chassi",
+                    "3N1BB7AE9LY203374"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Tue, 12 Jul 2022 20:35:47 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "ASP.NET"
+                },
+                {
+                  "key": "CF-Cache-Status",
+                  "value": "DYNAMIC"
+                },
+                {
+                  "key": "Expect-CT",
+                  "value": "max-age=604800, report-uri=\"https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct\""
+                },
+                {
+                  "key": "Report-To",
+                  "value": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v3?s=P43Ccp4XOX0y3%2FJF%2B2eKjmwrDM1aXZmiriXEY8Zj4mxHPLRcqIdIIf17l57e54PVksxXWVkRkkQ7t3UDowbQdZeRwRf9Ck%2FPtppNAQqKTz%2FvO9JPoxnBLUTdZ8HK4wr5fLnj\"}],\"group\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "NEL",
+                  "value": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "Server",
+                  "value": "cloudflare"
+                },
+                {
+                  "key": "CF-RAY",
+                  "value": "729c91172b1f25a4-GIG"
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"solicitacao\": {\n        \"horaSolicitacao\": \"2022-07-12 17:33:30.544436\",\n        \"ip\": \"172.69.3.230\",\n        \"nomeConsulta\": \"Gravame B\",\n        \"tipoDado\": \"CHASSI\",\n        \"dado\": \"3N1BB7AE9LY203374\",\n        \"nomeUsuario\": \"USUARIO DE TESTE DA INFOCAR\",\n        \"descricaoChave\": \"CHAVE DE TESTE\",\n        \"versaoConsulta\": \"V1\"\n    },\n    \"retorno\": {\n        \"numeroResposta\": \"78c6941d-99e7-4d2f-a1e1-18f95ab56d82\",\n        \"mensagem\": 1,\n        \"tempoProcessamento\": 6.2925692,\n        \"descricao\": \"Consulta realizada com sucesso\",\n        \"dataRetorno\": \"2022-07-12 17:33:36.837005\"\n    },\n    \"dados\": {\n        \"historico\": [\n            {\n                \"placa\": \"GJZ6D17\",\n                \"renavam\": \"01226483035\",\n                \"anoFabricacao\": 2019,\n                \"anoModelo\": 2020,\n                \"uf\": \"SP\",\n                \"documentoFinanciado\": \"NAO CONSTAM INFORMACOES\",\n                \"nomeFinanciado\": \"MARCOS PEREIRA DA COSTA\",\n                \"numeroContrato\": \"341839865\",\n                \"codigoAgenteFinanceiro\": \"000000003598\",\n                \"documentoAgenteFinanceiro\": \"NAO CONSTAM INFORMACOES\",\n                \"agenteFinanceiro\": \"BANCO VOTORANTIM SA\",\n                \"ufGravame\": \"SP\",\n                \"dataDoGravame\": \"13/06/2022\",\n                \"vigenciaGravame\": \"NAO CONSTAM INFORMACOES\",\n                \"situacao\": \"VEICULO TEVE GRAVAME CANCELADO PELO AGENTE FINANCEIRO\",\n                \"situacaoVeiculo\": \"NAO CONSTAM INFORMACOES\"\n            },\n            {\n                \"placa\": \"GJZ6D17\",\n                \"renavam\": \"01226483035\",\n                \"anoFabricacao\": 2019,\n                \"anoModelo\": 2020,\n                \"uf\": \"SP\",\n                \"documentoFinanciado\": \"NAO CONSTAM INFORMACOES\",\n                \"nomeFinanciado\": \"MARCOS PEREIRA DA COSTA\",\n                \"numeroContrato\": \"341839865\",\n                \"codigoAgenteFinanceiro\": \"000000003598\",\n                \"documentoAgenteFinanceiro\": \"NAO CONSTAM INFORMACOES\",\n                \"agenteFinanceiro\": \"BANCO VOTORANTIM SA\",\n                \"ufGravame\": \"SP\",\n                \"dataDoGravame\": \"13/06/2022\",\n                \"vigenciaGravame\": \"NAO CONSTAM INFORMACOES\",\n                \"situacao\": \"VEICULO COM ALIENACAO FIDUCIARIA\",\n                \"situacaoVeiculo\": \"NAO CONSTAM INFORMACOES\"\n            }\n        ]\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "placa",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "infocar-id-Key",
+                "value": "{{infocar-id-Key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.datacast3.com/api/v1.0/GravameB/placa/",
+              "protocol": "https",
+              "host": [
+                "api",
+                "datacast3",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v1.0",
+                "GravameB",
+                "placa",
+                ""
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Exemplo requisição por placa",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "infocar-id-Key",
+                    "value": "{{infocar-id-Key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "https://api.datacast3.com/api/v1.0/GravameB/placa/ATY1314",
+                  "protocol": "https",
+                  "host": [
+                    "api",
+                    "datacast3",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "v1.0",
+                    "GravameB",
+                    "placa",
+                    "ATY1314"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Tue, 12 Jul 2022 20:37:10 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "ASP.NET"
+                },
+                {
+                  "key": "CF-Cache-Status",
+                  "value": "DYNAMIC"
+                },
+                {
+                  "key": "Expect-CT",
+                  "value": "max-age=604800, report-uri=\"https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct\""
+                },
+                {
+                  "key": "Report-To",
+                  "value": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v3?s=8FyMm%2Br178rJRcRm6C9jRvGyp2RNaH%2BxrEX2aNF%2FpxjzWwlpRInGBEYhOwder0adumYeQifEuVk12y5mQE2MS69aQ2otKTe%2F6J7%2BxTheoPFC5prkzrn7ESGtTAi0DUnhG6eK\"}],\"group\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "NEL",
+                  "value": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "Server",
+                  "value": "cloudflare"
+                },
+                {
+                  "key": "CF-RAY",
+                  "value": "729c933acb4e25a4-GIG"
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"solicitacao\": {\n        \"horaSolicitacao\": \"2022-07-12 17:34:58.169865\",\n        \"ip\": \"172.69.3.230\",\n        \"nomeConsulta\": \"Gravame B\",\n        \"tipoDado\": \"PLACA\",\n        \"dado\": \"ATY1314\",\n        \"nomeUsuario\": \"USUARIO DE TESTE DA INFOCAR\",\n        \"descricaoChave\": \"CHAVE DE TESTE\",\n        \"versaoConsulta\": \"V1\"\n    },\n    \"retorno\": {\n        \"numeroResposta\": \"1270f9a6-2763-4d1b-8073-9b706d216c26\",\n        \"mensagem\": 1,\n        \"tempoProcessamento\": 1.1954249,\n        \"descricao\": \"Consulta realizada com sucesso\",\n        \"dataRetorno\": \"2022-07-12 17:34:59.365290\"\n    },\n    \"dados\": {\n        \"historico\": [\n            {\n                \"placa\": \"ATY1314\",\n                \"renavam\": \"00325348901\",\n                \"anoFabricacao\": 2011,\n                \"anoModelo\": 2011,\n                \"uf\": \"PR\",\n                \"documentoFinanciado\": \"NAO CONSTAM INFORMACOES\",\n                \"nomeFinanciado\": \"DILERMANDO FELD\",\n                \"numeroContrato\": \"01.69.207.055/11\",\n                \"codigoAgenteFinanceiro\": \"000000000677\",\n                \"documentoAgenteFinanceiro\": \"NAO CONSTAM INFORMACOES\",\n                \"agenteFinanceiro\": \"BCO MAXINVEST S/A\",\n                \"ufGravame\": \"PR\",\n                \"dataDoGravame\": \"15/04/2011\",\n                \"vigenciaGravame\": \"NAO CONSTAM INFORMACOES\",\n                \"situacao\": \"VEICULO TEVE GRAVAME BAIXADO PELO AGENTE FINANCEIRO\",\n                \"situacaoVeiculo\": \"NAO CONSTAM INFORMACOES\"\n            },\n            {\n                \"placa\": \"ATY1314\",\n                \"renavam\": \"00325348901\",\n                \"anoFabricacao\": 2011,\n                \"anoModelo\": 2011,\n                \"uf\": \"PR\",\n                \"documentoFinanciado\": \"NAO CONSTAM INFORMACOES\",\n                \"nomeFinanciado\": \"ROSA DA CONCEICAO DOS REIS\",\n                \"numeroContrato\": \"0000000000057518555\",\n                \"codigoAgenteFinanceiro\": \"000000001181\",\n                \"documentoAgenteFinanceiro\": \"NAO CONSTAM INFORMACOES\",\n                \"agenteFinanceiro\": \"BANCO ITAUCARD SA\",\n                \"ufGravame\": \"PR\",\n                \"dataDoGravame\": \"29/04/2015\",\n                \"vigenciaGravame\": \"NAO CONSTAM INFORMACOES\",\n                \"situacao\": \"VEICULO TEVE GRAVAME BAIXADO PELO AGENTE FINANCEIRO\",\n                \"situacaoVeiculo\": \"NAO CONSTAM INFORMACOES\"\n            },\n            {\n                \"placa\": \"ATY1314\",\n                \"renavam\": \"00325348901\",\n                \"anoFabricacao\": 2011,\n                \"anoModelo\": 2011,\n                \"uf\": \"PR\",\n                \"documentoFinanciado\": \"NAO CONSTAM INFORMACOES\",\n                \"nomeFinanciado\": \"EDISON EVERSON DANELUZ\",\n                \"numeroContrato\": \"000076377608\",\n                \"codigoAgenteFinanceiro\": \"000000000914\",\n                \"documentoAgenteFinanceiro\": \"NAO CONSTAM INFORMACOES\",\n                \"agenteFinanceiro\": \"BANCO PAN S.A.\",\n                \"ufGravame\": \"PR\",\n                \"dataDoGravame\": \"29/03/2016\",\n                \"vigenciaGravame\": \"NAO CONSTAM INFORMACOES\",\n                \"situacao\": \"VEICULO TEVE GRAVAME BAIXADO PELO AGENTE FINANCEIRO\",\n                \"situacaoVeiculo\": \"NAO CONSTAM INFORMACOES\"\n            }\n        ]\n    }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "InfoDebitos V4 - IDEBX Copy",
+      "item": [
+        {
+          "name": "placa",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "infocar-id-Key",
+                "value": "{{infocar-id-Key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.datacast3.com/api/v4.0/InfoDebitos/placa/",
+              "protocol": "https",
+              "host": [
+                "api",
+                "datacast3",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v4.0",
+                "InfoDebitos",
+                "placa",
+                ""
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "req 2025",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "infocar-id-Key",
+                    "value": "{{infocar-id-Key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "https://api.datacast3.com/api/v4.0/InfoDebitos/placa/FIP2284",
+                  "protocol": "https",
+                  "host": [
+                    "api",
+                    "datacast3",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "v4.0",
+                    "InfoDebitos",
+                    "placa",
+                    "FIP2284"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Wed, 15 Jan 2025 19:01:55 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "ASP.NET"
+                },
+                {
+                  "key": "CF-Cache-Status",
+                  "value": "DYNAMIC"
+                },
+                {
+                  "key": "Report-To",
+                  "value": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v4?s=V0ipHf%2BJ4IxP7otPgfH0Fthz0vUhfC0k954dAsP5fUf3G0s9PU28LxWkuxNPjIVB8OpNVTFmasjWzRTe9ks%2B%2FYt20Vapv7skyrJyFGxSmVf7TzWiGlHNmWUb1IDX9YWszY4v\"}],\"group\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "NEL",
+                  "value": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "Server",
+                  "value": "cloudflare"
+                },
+                {
+                  "key": "CF-RAY",
+                  "value": "90281defb8451ab8-GRU"
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                },
+                {
+                  "key": "server-timing",
+                  "value": "cfL4;desc=\"?proto=TCP&rtt=4946&min_rtt=3752&rtt_var=2123&sent=4&recv=6&lost=0&retrans=0&sent_bytes=2815&recv_bytes=909&delivery_rate=765346&cwnd=243&unsent_bytes=0&cid=9bd6b5fa7dd6fb4a&ts=1901&x=0\""
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"solicitacao\": {\n        \"horaSolicitacao\": \"2025-01-15 15:44:54.547058\",\n        \"ip\": \"200.171.246.151\",\n        \"nomeConsulta\": \"InfoDebitos\",\n        \"tipoDado\": \"PLACA\",\n        \"dado\": \"FIP2284\",\n        \"nomeUsuario\": \"USUARIO DE TESTE DA INFOCAR\",\n        \"descricaoChave\": \"CHAVE DE TESTE\",\n        \"versaoConsulta\": \"V4\"\n    },\n    \"retorno\": {\n        \"numeroResposta\": \"918800d6-8063-4e3c-8028-830fc161f563\",\n        \"mensagem\": 1,\n        \"tempoProcessamento\": 1.5434385,\n        \"descricao\": \"Consulta realizada com sucesso\",\n        \"dataRetorno\": \"2025-01-15 15:44:56.090496\"\n    },\n    \"dados\": {\n        \"dadosDoVeiculo\": {\n            \"renavam\": \"513558756\",\n            \"placa\": \"FIP2284\",\n            \"chassi\": \"9BD197163D3070186\",\n            \"totalDebito\": \"17032.4\"\n        },\n        \"debitosMultas\": {\n            \"totalDebito\": \"6850.1\",\n            \"quantidade\": \"29\",\n            \"ocorrencia\": null\n        },\n        \"notificacaoMultas\": {\n            \"totalDebito\": \"0.0\",\n            \"quantidade\": \"0\",\n            \"ocorrencia\": [\n                {\n                    \"identificador\": \"\",\n                    \"fonte\": \"\",\n                    \"uf\": \"\",\n                    \"descricao\": \"\",\n                    \"valor\": \"\",\n                    \"dataVencimento\": \"\",\n                    \"dataHoraMulta\": \"\"\n                }\n            ]\n        },\n        \"debitosLicenciamento\": {\n            \"totalDebito\": \"955.92\",\n            \"ocorrencia\": [\n                {\n                    \"ano\": \"2020\",\n                    \"valor\": \"164.43\",\n                    \"atrasado\": \"SIM\",\n                    \"linhaDigitavel\": \"null\",\n                    \"dataVencimento\": \"null\"\n                },\n                {\n                    \"ano\": \"2021\",\n                    \"valor\": \"161.39\",\n                    \"atrasado\": \"SIM\",\n                    \"linhaDigitavel\": \"null\",\n                    \"dataVencimento\": \"null\"\n                },\n                {\n                    \"ano\": \"2022\",\n                    \"valor\": \"217.17\",\n                    \"atrasado\": \"SIM\",\n                    \"linhaDigitavel\": \"null\",\n                    \"dataVencimento\": \"null\"\n                },\n                {\n                    \"ano\": \"2023\",\n                    \"valor\": \"212.66\",\n                    \"atrasado\": \"SIM\",\n                    \"linhaDigitavel\": \"null\",\n                    \"dataVencimento\": \"null\"\n                },\n                {\n                    \"ano\": \"2024\",\n                    \"valor\": \"200.27\",\n                    \"atrasado\": \"SIM\",\n                    \"linhaDigitavel\": \"null\",\n                    \"dataVencimento\": \"null\"\n                }\n            ]\n        },\n        \"debitosIPVA\": {\n            \"totalDebito\": \"0.0\",\n            \"ocorrencia\": [\n                {\n                    \"ano\": \"\",\n                    \"valor\": \"\",\n                    \"atrasado\": \"\",\n                    \"linhaDigitavel\": \"\",\n                    \"dataVencimento\": \"\"\n                }\n            ]\n        },\n        \"debitosDPVAT\": {\n            \"totalDebito\": \"0.0\",\n            \"ocorrencia\": [\n                {\n                    \"ano\": \"\",\n                    \"valor\": \"\",\n                    \"atrasado\": \"\",\n                    \"linhaDigitavel\": \"\",\n                    \"dataVencimento\": \"\"\n                }\n            ]\n        },\n        \"dividaAtiva\": {\n            \"totalDebito\": \"9226.38\",\n            \"ocorrencia\": [\n                {\n                    \"ano\": \"2020\",\n                    \"valor\": \"2329.72\",\n                    \"atrasado\": \"null\",\n                    \"linhaDigitavel\": \"null\",\n                    \"dataVencimento\": \"null\"\n                },\n                {\n                    \"ano\": \"2022\",\n                    \"valor\": \"2401.85\",\n                    \"atrasado\": \"null\",\n                    \"linhaDigitavel\": \"null\",\n                    \"dataVencimento\": \"null\"\n                },\n                {\n                    \"ano\": \"2023\",\n                    \"valor\": \"2455.97\",\n                    \"atrasado\": \"null\",\n                    \"linhaDigitavel\": \"null\",\n                    \"dataVencimento\": \"null\"\n                },\n                {\n                    \"ano\": \"2021\",\n                    \"valor\": \"2038.84\",\n                    \"atrasado\": \"null\",\n                    \"linhaDigitavel\": \"null\",\n                    \"dataVencimento\": \"null\"\n                }\n            ]\n        },\n        \"outrosDebitos\": {\n            \"totalDebito\": \"0.0\",\n            \"ocorrencia\": [\n                {\n                    \"ano\": \"\",\n                    \"valor\": \"\",\n                    \"atrasado\": \"\",\n                    \"linhaDigitavel\": \"\",\n                    \"dataVencimento\": \"\"\n                }\n            ]\n        },\n        \"restricao\": {\n            \"restricao\": []\n        },\n        \"pdf\": null\n    }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Historico de Roubo e Furto B - RF - V38 Copy",
+      "item": [
+        {
+          "name": "chassi",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "infocar-id-Key",
+                "value": "{{infocar-id-Key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.datacast3.com/api/v1.0/HistoricoRouboFurtoB/chassi/",
+              "protocol": "https",
+              "host": [
+                "api",
+                "datacast3",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v1.0",
+                "HistoricoRouboFurtoB",
+                "chassi",
+                ""
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Exemplo de requisição por chassi",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "infocar-id-Key",
+                    "value": "{{infocar-id-Key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "https://api.datacast3.com/api/v1.0/HistoricoRouboFurtoB/chassi/9BGCS80X0FB181924",
+                  "protocol": "https",
+                  "host": [
+                    "api",
+                    "datacast3",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "v1.0",
+                    "HistoricoRouboFurtoB",
+                    "chassi",
+                    "9BGCS80X0FB181924"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Tue, 02 Aug 2022 13:00:55 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "ASP.NET"
+                },
+                {
+                  "key": "CF-Cache-Status",
+                  "value": "DYNAMIC"
+                },
+                {
+                  "key": "Expect-CT",
+                  "value": "max-age=604800, report-uri=\"https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct\""
+                },
+                {
+                  "key": "Report-To",
+                  "value": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v3?s=OaN6YA%2BBDpizsBLPzXdf5bQ3Pvu1%2B%2FLEm60MYg1wv4p3XfIv41grPmBHzljZR0t0%2FhbFn5zi3kSRy%2FGTvQICpFa%2FEEFmsba5t0%2Bt9s2AtkkdHC7lQwVCg1giXt79GKXd2o%2B4\"}],\"group\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "NEL",
+                  "value": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "Server",
+                  "value": "cloudflare"
+                },
+                {
+                  "key": "CF-RAY",
+                  "value": "7346ff890d3e278a-GIG"
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"solicitacao\": {\n        \"horaSolicitacao\": \"2022-08-02 09:57:37.117651\",\n        \"ip\": \"162.158.193.243\",\n        \"nomeConsulta\": \"Histórico Roubo e Furto B\",\n        \"tipoDado\": \"CHASSI\",\n        \"dado\": \"9BGCS80X0FB181924\",\n        \"nomeUsuario\": \"USUARIO DE TESTE DA INFOCAR\",\n        \"descricaoChave\": \"CHAVE DE TESTE\",\n        \"versaoConsulta\": \"V1\"\n    },\n    \"retorno\": {\n        \"numeroResposta\": \"c8a079de-918c-4df5-b4e3-57ed3e323bd5\",\n        \"mensagem\": 1,\n        \"tempoProcessamento\": 10.8990774,\n        \"descricao\": \"Consulta realizada com sucesso\",\n        \"dataRetorno\": \"2022-08-02 09:57:48.016729\"\n    },\n    \"dados\": {\n        \"dadosDoVeiculo\": {\n            \"placa\": \"FZG4I60\",\n            \"chassi\": \"9BGCS80X0FB181924\",\n            \"renavam\": \"01036962897\",\n            \"modelo\": \"CHEVROLET/MONTANA SPORT\",\n            \"anoFabricacao\": 2014,\n            \"anoModelo\": 2015,\n            \"cor\": \"BRANCA\",\n            \"combustivel\": \"ALCOOL/GASOLINA\",\n            \"uf\": \"BA\",\n            \"municipio\": \"SENHOR DO BONFIM\",\n            \"origemEmplacamento\": \"SAO PAULO _SP_\",\n            \"tipoVeiculo\": \"CAMINHONETE\"\n        },\n        \"informacoesTecnicasAdicionais\": {\n            \"motor\": \"GB5022204\",\n            \"numeroCaixaCambio\": \"V14493939\",\n            \"capacidadeDePassageiros\": \"2\",\n            \"potencia\": \"102\",\n            \"quantidadeDeEixos\": \"\",\n            \"capacidadeDeCarga\": \"70\",\n            \"cmt\": \"300\",\n            \"pbt\": \"180\",\n            \"carroceria\": \"\",\n            \"numeroCarroceria\": \"\",\n            \"numeroEixoTraseiroDiferencial\": \"\",\n            \"numeroTerceiroEixo\": \"\",\n            \"numeroCilindradas\": \"1400\",\n            \"especie\": \"CARGA\",\n            \"categoria\": \"\",\n            \"procedencia\": \"NACIONAL\",\n            \"dataAtualizacao\": \"\",\n            \"situacaoChassi\": \"NORMAL\",\n            \"tipoDocFaturado\": \"\",\n            \"documentoFaturado\": \"\",\n            \"ufFaturado\": \"\"\n        },\n        \"restricoesImpedimentos\": {\n            \"situacaoVeiculo\": \"CIRCULACAO\",\n            \"rouboFurto\": \"\",\n            \"restricoes\": []\n        },\n        \"registrosRouboFurto\": null\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "placa",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "infocar-id-Key",
+                "value": "{{infocar-id-Key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.datacast3.com/api/v1.0/HistoricoRouboFurtoB/placa/",
+              "protocol": "https",
+              "host": [
+                "api",
+                "datacast3",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v1.0",
+                "HistoricoRouboFurtoB",
+                "placa",
+                ""
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Exemplo de requisição por placa",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "infocar-id-Key",
+                    "value": "{{infocar-id-Key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "https://api.datacast3.com/api/v1.0/HistoricoRouboFurtoB/placa/ABC1234",
+                  "protocol": "https",
+                  "host": [
+                    "api",
+                    "datacast3",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "v1.0",
+                    "HistoricoRouboFurtoB",
+                    "placa",
+                    "ABC1234"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Tue, 02 Aug 2022 13:00:09 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "ASP.NET"
+                },
+                {
+                  "key": "CF-Cache-Status",
+                  "value": "DYNAMIC"
+                },
+                {
+                  "key": "Expect-CT",
+                  "value": "max-age=604800, report-uri=\"https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct\""
+                },
+                {
+                  "key": "Report-To",
+                  "value": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v3?s=atL%2FmgcfBX7sq218os0CQP347y8bx6e0QivUgWShLG1auaT1iZJCTlRmgmua8Qcklju%2F79DbQSoKwpdLSi3cEVciL8QfwP7n4XV3c%2Bkp9I%2FFedO2%2B4WzkEI5yjKG%2FBFTyFMg\"}],\"group\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "NEL",
+                  "value": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "Server",
+                  "value": "cloudflare"
+                },
+                {
+                  "key": "CF-RAY",
+                  "value": "7346fe836f99278a-GIG"
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"solicitacao\": {\n        \"horaSolicitacao\": \"2022-08-02 09:56:55.491489\",\n        \"ip\": \"162.158.193.243\",\n        \"nomeConsulta\": \"Histórico Roubo e Furto B\",\n        \"tipoDado\": \"PLACA\",\n        \"dado\": \"ABC1234\",\n        \"nomeUsuario\": \"USUARIO DE TESTE DA INFOCAR\",\n        \"descricaoChave\": \"CHAVE DE TESTE\",\n        \"versaoConsulta\": \"V1\"\n    },\n    \"retorno\": {\n        \"numeroResposta\": \"c96d9cc8-72ee-4c6d-96c8-a82cedd5584a\",\n        \"mensagem\": 1,\n        \"tempoProcessamento\": 6.3783223,\n        \"descricao\": \"Consulta realizada com sucesso\",\n        \"dataRetorno\": \"2022-08-02 09:57:01.869811\"\n    },\n    \"dados\": {\n        \"dadosDoVeiculo\": {\n            \"placa\": \"ABC1234\",\n            \"chassi\": \"9BWZZZ32ZGP246344\",\n            \"renavam\": \"00539918229\",\n            \"modelo\": \"VW/SANTANA CG\",\n            \"anoFabricacao\": 1986,\n            \"anoModelo\": 0,\n            \"cor\": \"VERMELHA\",\n            \"combustivel\": \"ALCOOL\",\n            \"uf\": \"PR\",\n            \"municipio\": \"LOBATO\",\n            \"origemEmplacamento\": \"PARANA _PR_\",\n            \"tipoVeiculo\": \"INEXISTENTE\"\n        },\n        \"informacoesTecnicasAdicionais\": {\n            \"motor\": \"\",\n            \"numeroCaixaCambio\": \"\",\n            \"capacidadeDePassageiros\": \"0\",\n            \"potencia\": \"94\",\n            \"quantidadeDeEixos\": \"\",\n            \"capacidadeDeCarga\": \"0\",\n            \"cmt\": \"0\",\n            \"pbt\": \"0\",\n            \"carroceria\": \"\",\n            \"numeroCarroceria\": \"\",\n            \"numeroEixoTraseiroDiferencial\": \"\",\n            \"numeroTerceiroEixo\": \"\",\n            \"numeroCilindradas\": \"0\",\n            \"especie\": \"NAO ATRIBUIDO\",\n            \"categoria\": \"\",\n            \"procedencia\": \"NACIONAL\",\n            \"dataAtualizacao\": \"\",\n            \"situacaoChassi\": \"NORMAL\",\n            \"tipoDocFaturado\": \"\",\n            \"documentoFaturado\": \"\",\n            \"ufFaturado\": \"\"\n        },\n        \"restricoesImpedimentos\": {\n            \"situacaoVeiculo\": \"CIRCULACAO\",\n            \"rouboFurto\": \"VEICULO COM OCORRENCIA DE FURTO/ROUBOVEICULO INDICA OCORRENCIA DE ROUBO/FURTO\",\n            \"restricoes\": [\n                \"VEICULO COM OCORRENCIA DE FURTO/ROUBO\",\n                \"VEICULO INDICA OCORRENCIA DE ROUBO/FURTO\"\n            ]\n        },\n        \"registrosRouboFurto\": [\n            {\n                \"placa\": \"ABC1234\",\n                \"chassi\": \"9BWZZZ32ZGP246344\",\n                \"anoFabricacao\": 0,\n                \"anoModelo\": 0,\n                \"cor\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"uf\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"municipioEmplacamento\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"tipoOcorrencia\": \"ALERTA_DE_ROUBO/FURTO\",\n                \"ufBoletim\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"codigoOrgaoDeSeguranca\": \"2440\",\n                \"numeroBoletimDeOcorrencia\": \"1645884\",\n                \"anoBoletimOcorrencia\": \"2020\",\n                \"municipioOcorrencia\": \"SAO_PAULO\",\n                \"tipoDeclaracao\": \"1_ROUBADO\",\n                \"dataDaOcorrencia\": \"31/10/2020\",\n                \"alarme\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\"\n            },\n            {\n                \"placa\": \"ABC1234\",\n                \"chassi\": \"9BWZZZ32ZGP246344\",\n                \"anoFabricacao\": 0,\n                \"anoModelo\": 0,\n                \"cor\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"uf\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"municipioEmplacamento\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"tipoOcorrencia\": \"ENCONTRADO\",\n                \"ufBoletim\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"codigoOrgaoDeSeguranca\": \"753\",\n                \"numeroBoletimDeOcorrencia\": \"1391\",\n                \"anoBoletimOcorrencia\": \"2020\",\n                \"municipioOcorrencia\": \"MOGI_MIRIM\",\n                \"tipoDeclaracao\": \"3_NAO_INFORMADO\",\n                \"dataDaOcorrencia\": \"28/04/2020\",\n                \"alarme\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\"\n            },\n            {\n                \"placa\": \"ABC1234\",\n                \"chassi\": \"9BWZZZ32ZGP246344\",\n                \"anoFabricacao\": 0,\n                \"anoModelo\": 0,\n                \"cor\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"uf\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"municipioEmplacamento\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"tipoOcorrencia\": \"DEVOLVIDO\",\n                \"ufBoletim\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"codigoOrgaoDeSeguranca\": \"753\",\n                \"numeroBoletimDeOcorrencia\": \"1391\",\n                \"anoBoletimOcorrencia\": \"2020\",\n                \"municipioOcorrencia\": \"MOGI_MIRIM\",\n                \"tipoDeclaracao\": \"3_NAO_INFORMADO\",\n                \"dataDaOcorrencia\": \"28/04/2020\",\n                \"alarme\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\"\n            },\n            {\n                \"placa\": \"ABC1234\",\n                \"chassi\": \"9BWZZZ32ZGP246344\",\n                \"anoFabricacao\": 0,\n                \"anoModelo\": 0,\n                \"cor\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"uf\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"municipioEmplacamento\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"tipoOcorrencia\": \"ALERTA_DE_ROUBO/FURTO\",\n                \"ufBoletim\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"codigoOrgaoDeSeguranca\": \"2550\",\n                \"numeroBoletimDeOcorrencia\": \"905\",\n                \"anoBoletimOcorrencia\": \"2020\",\n                \"municipioOcorrencia\": \"MOGI_GUACU\",\n                \"tipoDeclaracao\": \"2_FURTADO\",\n                \"dataDaOcorrencia\": \"25/04/2020\",\n                \"alarme\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\"\n            },\n            {\n                \"placa\": \"ABC1234\",\n                \"chassi\": \"9BWZZZ32ZGP246344\",\n                \"anoFabricacao\": 0,\n                \"anoModelo\": 0,\n                \"cor\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"uf\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"municipioEmplacamento\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"tipoOcorrencia\": \"ALERTA_DE_ROUBO/FURTO\",\n                \"ufBoletim\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"codigoOrgaoDeSeguranca\": \"52\",\n                \"numeroBoletimDeOcorrencia\": \"2537\",\n                \"anoBoletimOcorrencia\": \"2020\",\n                \"municipioOcorrencia\": \"NOVA_IGUACU\",\n                \"tipoDeclaracao\": \"1_ROUBADO\",\n                \"dataDaOcorrencia\": \"09/04/2020\",\n                \"alarme\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\"\n            },\n            {\n                \"placa\": \"ABC1234\",\n                \"chassi\": \"9BWZZZ32ZGP246344\",\n                \"anoFabricacao\": 0,\n                \"anoModelo\": 0,\n                \"cor\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"uf\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"municipioEmplacamento\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"tipoOcorrencia\": \"ENCONTRADO\",\n                \"ufBoletim\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"codigoOrgaoDeSeguranca\": \"271\",\n                \"numeroBoletimDeOcorrencia\": \"7142\",\n                \"anoBoletimOcorrencia\": \"2014\",\n                \"municipioOcorrencia\": \"GUARULHOS\",\n                \"tipoDeclaracao\": \"3_NAO_INFORMADO\",\n                \"dataDaOcorrencia\": \"01/10/2014\",\n                \"alarme\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\"\n            },\n            {\n                \"placa\": \"ABC1234\",\n                \"chassi\": \"9BWZZZ32ZGP246344\",\n                \"anoFabricacao\": 0,\n                \"anoModelo\": 0,\n                \"cor\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"uf\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"municipioEmplacamento\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"tipoOcorrencia\": \"DEVOLVIDO\",\n                \"ufBoletim\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"codigoOrgaoDeSeguranca\": \"271\",\n                \"numeroBoletimDeOcorrencia\": \"7142\",\n                \"anoBoletimOcorrencia\": \"2014\",\n                \"municipioOcorrencia\": \"GUARULHOS\",\n                \"tipoDeclaracao\": \"3_NAO_INFORMADO\",\n                \"dataDaOcorrencia\": \"01/10/2014\",\n                \"alarme\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\"\n            },\n            {\n                \"placa\": \"ABC1234\",\n                \"chassi\": \"9BWZZZ32ZGP246344\",\n                \"anoFabricacao\": 0,\n                \"anoModelo\": 0,\n                \"cor\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"uf\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"municipioEmplacamento\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"tipoOcorrencia\": \"ALERTA_DE_ROUBO/FURTO\",\n                \"ufBoletim\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"codigoOrgaoDeSeguranca\": \"260\",\n                \"numeroBoletimDeOcorrencia\": \"6806\",\n                \"anoBoletimOcorrencia\": \"2014\",\n                \"municipioOcorrencia\": \"GUARULHOS\",\n                \"tipoDeclaracao\": \"2_FURTADO\",\n                \"dataDaOcorrencia\": \"29/09/2014\",\n                \"alarme\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\"\n            },\n            {\n                \"placa\": \"ABC1234\",\n                \"chassi\": \"9BWZZZ32ZGP246344\",\n                \"anoFabricacao\": 0,\n                \"anoModelo\": 0,\n                \"cor\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"uf\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"municipioEmplacamento\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"tipoOcorrencia\": \"ENCONTRADO\",\n                \"ufBoletim\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"codigoOrgaoDeSeguranca\": \"1\",\n                \"numeroBoletimDeOcorrencia\": \"300983\",\n                \"anoBoletimOcorrencia\": \"1995\",\n                \"municipioOcorrencia\": \"CURITIBA\",\n                \"tipoDeclaracao\": \"3_NAO_INFORMADO\",\n                \"dataDaOcorrencia\": \"04/04/1995\",\n                \"alarme\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\"\n            },\n            {\n                \"placa\": \"ABC1234\",\n                \"chassi\": \"9BWZZZ32ZGP246344\",\n                \"anoFabricacao\": 0,\n                \"anoModelo\": 0,\n                \"cor\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"uf\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"municipioEmplacamento\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"tipoOcorrencia\": \"DEVOLVIDO\",\n                \"ufBoletim\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"codigoOrgaoDeSeguranca\": \"1\",\n                \"numeroBoletimDeOcorrencia\": \"400983\",\n                \"anoBoletimOcorrencia\": \"1995\",\n                \"municipioOcorrencia\": \"CURITIBA\",\n                \"tipoDeclaracao\": \"3_NAO_INFORMADO\",\n                \"dataDaOcorrencia\": \"04/04/1995\",\n                \"alarme\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\"\n            },\n            {\n                \"placa\": \"ABC1234\",\n                \"chassi\": \"9BWZZZ32ZGP246344\",\n                \"anoFabricacao\": 0,\n                \"anoModelo\": 0,\n                \"cor\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"uf\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"municipioEmplacamento\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"tipoOcorrencia\": \"ALERTA_DE_ROUBO/FURTO\",\n                \"ufBoletim\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\",\n                \"codigoOrgaoDeSeguranca\": \"1\",\n                \"numeroBoletimDeOcorrencia\": \"200983\",\n                \"anoBoletimOcorrencia\": \"1995\",\n                \"municipioOcorrencia\": \"CURITIBA\",\n                \"tipoDeclaracao\": \"2_FURTADO\",\n                \"dataDaOcorrencia\": \"18/03/1995\",\n                \"alarme\": \"NAO_CONSTAM_INFORMACOES_NA_BASE_CONSULTADA\"\n            }\n        ]\n    }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Info Aquisições - AQUI - V71 Copy",
+      "item": [
+        {
+          "name": "Placa",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "infocar-id-Key",
+                "value": "{{infocar-id-Key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.datacast3.com/api/v2.0/InfoAquisicoes/placa/",
+              "protocol": "https",
+              "host": [
+                "api",
+                "datacast3",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v2.0",
+                "InfoAquisicoes",
+                "placa",
+                ""
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Historico de Proprietarios A - PROP - V15 Copy",
+      "item": [
+        {
+          "name": "chassi",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "infocar-id-Key",
+                "value": "{{infocar-id-Key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.datacast3.com/api/v1.0/HistoricoProprietarioA/chassi/",
+              "protocol": "https",
+              "host": [
+                "api",
+                "datacast3",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v1.0",
+                "HistoricoProprietarioA",
+                "chassi",
+                ""
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Exemplo requisição por chassi",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "infocar-id-Key",
+                    "value": "{{infocar-id-Key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "https://api.datacast3.com/api/v1.0/HistoricoProprietarioA/chassi/8AC9036625A927366",
+                  "protocol": "https",
+                  "host": [
+                    "api",
+                    "datacast3",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "v1.0",
+                    "HistoricoProprietarioA",
+                    "chassi",
+                    "8AC9036625A927366"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Thu, 14 Sep 2023 11:23:37 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "ASP.NET"
+                },
+                {
+                  "key": "CF-Cache-Status",
+                  "value": "DYNAMIC"
+                },
+                {
+                  "key": "Report-To",
+                  "value": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v3?s=ShQaPzeviTXejl8n%2BciA%2F72NFXu2QKYwSpUzdt8ogjndBibuzHi7dwM%2FUilK%2B73rexoR4v4Ra7Vz9sCVkVCia%2F94fKd3oObg5iWJtixG71cceKoOT2OHWpqleBrazi%2BDtLI9\"}],\"group\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "NEL",
+                  "value": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "Server",
+                  "value": "cloudflare"
+                },
+                {
+                  "key": "CF-RAY",
+                  "value": "806842156bd82553-GIG"
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"solicitacao\": {\n        \"horaSolicitacao\": \"2023-09-14 09:12:38.099440\",\n        \"ip\": \"162.158.193.205\",\n        \"nomeConsulta\": \"Histórico de Proprietários A\",\n        \"tipoDado\": \"CHASSI\",\n        \"dado\": \"8AC9036625A927366\",\n        \"nomeUsuario\": \"USUARIO DE TESTE DA INFOCAR\",\n        \"descricaoChave\": \"CHAVE DE TESTE\",\n        \"versaoConsulta\": \"V1\"\n    },\n    \"retorno\": {\n        \"numeroResposta\": \"0887d1a3-4608-4480-9157-e034e33c0d23\",\n        \"mensagem\": 1,\n        \"tempoProcessamento\": 7.5738535,\n        \"descricao\": \"Consulta realizada com sucesso\",\n        \"dataRetorno\": \"2023-09-14 09:12:45.673294\"\n    },\n    \"dados\": {\n        \"historicoProprietarioA\": [\n            {\n                \"ocorrencia\": \"1\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"ANANIAS COSTA AMARAL\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2005\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"2\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"ANANIAS COSTA AMARAL\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2006\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"3\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"ANANIAS COSTA AMARAL\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2007\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"4\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"ANANIAS COSTA AMARAL\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2008\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"5\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"ANANIAS COSTA AMARAL\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2009\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"6\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"ANANIAS COSTA AMARAL\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2010\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"7\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"ANANIAS COSTA AMARAL\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2011\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"8\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"ANANIAS COSTA AMARAL\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2012\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"9\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"ANA CECI DA SILVA\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2013\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"10\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"ANA CECI DA SILVA\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2014\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"11\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"ANA CECI DA SILVA\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2015\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"12\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"ANA CECI DA SILVA\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2016\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"13\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"ANA CECI DA SILVA\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2017\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"14\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"ALINE OCTAVIO PASCOAL DA SILVA\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2023\",\n                \"motivo\": \"NAO INFORMADO\"\n            }\n        ]\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "placa",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "infocar-id-Key",
+                "value": "{{infocar-id-Key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://api.datacast3.com/api/v1.0/HistoricoProprietarioA/placa/",
+              "protocol": "https",
+              "host": [
+                "api",
+                "datacast3",
+                "com"
+              ],
+              "path": [
+                "api",
+                "v1.0",
+                "HistoricoProprietarioA",
+                "placa",
+                ""
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Exemplo requisição por placa",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "infocar-id-Key",
+                    "value": "{{infocar-id-Key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "https://api.datacast3.com/api/v1.0/HistoricoProprietarioA/placa/EVE2814",
+                  "protocol": "https",
+                  "host": [
+                    "api",
+                    "datacast3",
+                    "com"
+                  ],
+                  "path": [
+                    "api",
+                    "v1.0",
+                    "HistoricoProprietarioA",
+                    "placa",
+                    "EVE2814"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Date",
+                  "value": "Thu, 14 Sep 2023 11:21:17 GMT"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                },
+                {
+                  "key": "Transfer-Encoding",
+                  "value": "chunked"
+                },
+                {
+                  "key": "Connection",
+                  "value": "keep-alive"
+                },
+                {
+                  "key": "X-Powered-By",
+                  "value": "ASP.NET"
+                },
+                {
+                  "key": "CF-Cache-Status",
+                  "value": "DYNAMIC"
+                },
+                {
+                  "key": "Report-To",
+                  "value": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v3?s=kWDxRYBoA1uK2DB1VcaWhqZms28f9NTPV%2F1vYo0LEU6vUwPo7PqqSlxmijtAGrj9pQfdIxOpHecXXD8bGUoyn1btrqJDxKiJ9aN3WTLcngjubjq43Dj7vE2Cms35oDFnL9YP\"}],\"group\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "NEL",
+                  "value": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}"
+                },
+                {
+                  "key": "Server",
+                  "value": "cloudflare"
+                },
+                {
+                  "key": "CF-RAY",
+                  "value": "80683ea83ff62553-GIG"
+                },
+                {
+                  "key": "Content-Encoding",
+                  "value": "br"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"solicitacao\": {\n        \"horaSolicitacao\": \"2023-09-14 09:10:17.610599\",\n        \"ip\": \"172.70.105.183\",\n        \"nomeConsulta\": \"Histórico de Proprietários A\",\n        \"tipoDado\": \"PLACA\",\n        \"dado\": \"EVE2814\",\n        \"nomeUsuario\": \"USUARIO DE TESTE DA INFOCAR\",\n        \"descricaoChave\": \"CHAVE DE TESTE\",\n        \"versaoConsulta\": \"V1\"\n    },\n    \"retorno\": {\n        \"numeroResposta\": \"2264fb84-1488-4dcc-8e77-f97d6e51fde7\",\n        \"mensagem\": 1,\n        \"tempoProcessamento\": 8.0320982,\n        \"descricao\": \"Consulta realizada com sucesso\",\n        \"dataRetorno\": \"2023-09-14 09:10:25.642697\"\n    },\n    \"dados\": {\n        \"historicoProprietarioA\": [\n            {\n                \"ocorrencia\": \"1\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"USINA IACANGA DE ACUCAR E ALCOOL SA\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2013\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"2\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"USINA IACANGA DE ACUCAR E ALCOOL SA\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2014\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"3\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"USINA IACANGA DE ACUCAR E ALCOOL SA\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2015\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"4\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"USINA IACANGA DE ACUCAR E ALCOOL SA\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2016\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"5\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"USINA IACANGA DE ACUCAR E ALCOOL SA\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2017\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"6\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"USINA IACANGA DE ACUCAR E ALCOOL SA\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2018\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"7\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"USINA IACANGA DE ACUCAR E ALCOOL SA\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2019\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"8\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"USINA IACANGA DE ACUCAR E ALCOOL SA\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"SP\",\n                \"data\": \"2020\",\n                \"motivo\": \"NAO INFORMADO\"\n            },\n            {\n                \"ocorrencia\": \"9\",\n                \"documento\": \"NAO INFORMADO\",\n                \"nome\": \"P. DE AZEREDO R DA SILVA\",\n                \"municipio\": \"NAO INFORMADO\",\n                \"uf\": \"RJ\",\n                \"data\": \"2023\",\n                \"motivo\": \"NAO INFORMADO\"\n            }\n        ]\n    }\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "infocar-id-Key",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "usuario",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "senha",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "variables",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
