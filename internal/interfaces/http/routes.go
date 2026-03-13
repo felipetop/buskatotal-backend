@@ -1,22 +1,8 @@
 package http
 
-import (
-    "cloud.google.com/go/firestore"
-    "github.com/gin-gonic/gin"
+import "github.com/gin-gonic/gin"
 
-    "buskatotal-backend/internal/app"
-    firestoreinfra "buskatotal-backend/internal/infra/firestore"
-)
-
-func RegisterRoutes(router *gin.Engine, client *firestore.Client) {
-    userRepo := firestoreinfra.NewUserRepository(client)
-    taskRepo := firestoreinfra.NewTaskRepository(client)
-
-    userService := app.NewUserService(userRepo)
-    taskService := app.NewTaskService(taskRepo)
-
-    userHandler := NewUserHandler(userService)
-    taskHandler := NewTaskHandler(taskService)
+func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, taskHandler *TaskHandler) {
 
     users := router.Group("/users")
     {

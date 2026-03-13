@@ -1,11 +1,15 @@
 package configs
 
-import "os"
+import (
+    "os"
+    "strings"
+)
 
 type Config struct {
     Port              string
     FirebaseProjectID string
     FirebaseCredsPath string
+    UseMockDB         bool
 }
 
 func Load() Config {
@@ -13,6 +17,7 @@ func Load() Config {
         Port:              getEnv("PORT", "8080"),
         FirebaseProjectID: getEnv("FIREBASE_PROJECT_ID", ""),
         FirebaseCredsPath: getEnv("GOOGLE_APPLICATION_CREDENTIALS", ""),
+        UseMockDB:         parseBool(getEnv("USE_MOCK_DB", "false")),
     }
 }
 
@@ -21,4 +26,9 @@ func getEnv(key, fallback string) string {
         return value
     }
     return fallback
+}
+
+func parseBool(value string) bool {
+    normalized := strings.TrimSpace(strings.ToLower(value))
+    return normalized == "true" || normalized == "1" || normalized == "yes" || normalized == "y"
 }

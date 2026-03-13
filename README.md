@@ -16,6 +16,7 @@ Crie um arquivo de variáveis de ambiente ou exporte no terminal:
 setx FIREBASE_PROJECT_ID "seu-project-id"
 setx GOOGLE_APPLICATION_CREDENTIALS "C:\caminho\para\service-account.json"
 setx PORT "8080"
+setx USE_MOCK_DB "false"
 ```
 
 > Observação: Após `setx`, abra um novo terminal para recarregar o PATH/envs.
@@ -26,6 +27,15 @@ setx PORT "8080"
 go mod tidy
 go run ./cmd/api
 ```
+
+### Rodar sem Firebase (Mock em memória)
+
+```bash
+setx USE_MOCK_DB "true"
+go run ./cmd/api
+```
+
+> O mock mantém os dados apenas em memória (apaga ao reiniciar).
 
 ## Endpoints
 

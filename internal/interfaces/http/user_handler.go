@@ -1,16 +1,24 @@
 package http
 
 import (
+    "context"
     "net/http"
 
     "github.com/gin-gonic/gin"
 
-    "buskatotal-backend/internal/app"
     "buskatotal-backend/internal/domain/user"
 )
 
+type UserService interface {
+    Create(ctx context.Context, input user.User) (user.User, error)
+    GetByID(ctx context.Context, id string) (user.User, error)
+    List(ctx context.Context) ([]user.User, error)
+    Update(ctx context.Context, input user.User) (user.User, error)
+    Delete(ctx context.Context, id string) error
+}
+
 type UserHandler struct {
-    service *app.UserService
+    service UserService
 }
 
 type userInput struct {
@@ -18,7 +26,7 @@ type userInput struct {
     Email string `json:"email"`
 }
 
-func NewUserHandler(service *app.UserService) *UserHandler {
+func NewUserHandler(service UserService) *UserHandler {
     return &UserHandler{service: service}
 }
 

@@ -1,16 +1,24 @@
 package http
 
 import (
+    "context"
     "net/http"
 
     "github.com/gin-gonic/gin"
 
-    "buskatotal-backend/internal/app"
     "buskatotal-backend/internal/domain/task"
 )
 
+type TaskService interface {
+    Create(ctx context.Context, input task.Task) (task.Task, error)
+    GetByID(ctx context.Context, id string) (task.Task, error)
+    ListByUser(ctx context.Context, userID string) ([]task.Task, error)
+    Update(ctx context.Context, input task.Task) (task.Task, error)
+    Delete(ctx context.Context, id string) error
+}
+
 type TaskHandler struct {
-    service *app.TaskService
+    service TaskService
 }
 
 type taskInput struct {
@@ -20,7 +28,7 @@ type taskInput struct {
     Done        bool   `json:"done"`
 }
 
-func NewTaskHandler(service *app.TaskService) *TaskHandler {
+func NewTaskHandler(service TaskService) *TaskHandler {
     return &TaskHandler{service: service}
 }
 
