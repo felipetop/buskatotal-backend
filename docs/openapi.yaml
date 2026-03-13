@@ -189,6 +189,27 @@ paths:
           description: Erro de validação ou saldo insuficiente
         "401":
           description: Header ausente
+  /payments/users/{id}/credit:
+    post:
+      summary: Creditar saldo (mock)
+      description: |
+        Endpoint mock para crédito de saldo. Em produção, isso deve ser substituído
+        por um provedor real de pagamento.
+      parameters:
+        - $ref: "#/components/parameters/UserIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentCreditInput"
+      responses:
+        "200":
+          description: Recibo de crédito
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentReceipt"
 components:
   parameters:
     UserIdPath:
@@ -218,10 +239,6 @@ components:
           type: string
         email:
           type: string
-        balance:
-          type: integer
-          format: int64
-          description: Saldo mock para consultas Infocar.
     User:
       allOf:
         - $ref: "#/components/schemas/UserInput"
@@ -235,6 +252,10 @@ components:
             updatedAt:
               type: string
               format: date-time
+            balance:
+              type: integer
+              format: int64
+              description: Saldo atual do usuário.
     TaskInput:
       type: object
       required: [userId, title]
@@ -266,3 +287,21 @@ components:
         dados:
           type: object
           additionalProperties: true
+    PaymentCreditInput:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: integer
+          format: int64
+          description: Valor a creditar (mock).
+    PaymentReceipt:
+      type: object
+      properties:
+        provider:
+          type: string
+        reference:
+          type: string
+        amount:
+          type: integer
+          format: int64

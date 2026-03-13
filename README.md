@@ -94,6 +94,19 @@ GET /infocar/agregados-b/placa/ABC1234
 X-User-Id: <ID_DO_USUARIO>
 ```
 
+### Pagamentos (mock)
+- `POST /payments/users/:id/credit`
+
+Exemplo payload:
+
+```json
+{
+  "amount": 10
+}
+```
+
+> Observação: este endpoint é mock. Em produção, será integrado a um provedor real de pagamento.
+
 ## Estrutura (DDD)
 
 ```

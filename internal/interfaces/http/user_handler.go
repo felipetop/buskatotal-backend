@@ -22,9 +22,8 @@ type UserHandler struct {
 }
 
 type userInput struct {
-    Name    string `json:"name"`
-    Email   string `json:"email"`
-    Balance int64  `json:"balance"`
+    Name  string `json:"name"`
+    Email string `json:"email"`
 }
 
 func NewUserHandler(service UserService) *UserHandler {
@@ -41,8 +40,6 @@ func (h *UserHandler) Create(c *gin.Context) {
     created, err := h.service.Create(c.Request.Context(), user.User{
         Name:  input.Name,
         Email: input.Email,
-        // Balance é um campo mock até a integração do módulo de pagamento.
-        Balance: input.Balance,
     })
     if err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -80,9 +77,8 @@ func (h *UserHandler) Update(c *gin.Context) {
 
     updated, err := h.service.Update(c.Request.Context(), user.User{
         ID:    id,
-        Name:    input.Name,
-        Email:   input.Email,
-        Balance: input.Balance,
+        Name:  input.Name,
+        Email: input.Email,
     })
     if err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

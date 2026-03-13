@@ -10,6 +10,7 @@ import (
     "buskatotal-backend/internal/infra/firestore"
     "buskatotal-backend/internal/infra/infocar"
     "buskatotal-backend/internal/infra/memory"
+    paymentinfra "buskatotal-backend/internal/infra/payment"
     httpinterfaces "buskatotal-backend/internal/interfaces/http"
 )
 
@@ -29,10 +30,13 @@ func Run() error {
         infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
         infocarService := NewInfocarService(infocarClient, userRepo, 1)
         infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
+        paymentProvider := paymentinfra.NewMockProvider()
+        paymentService := NewPaymentService(paymentProvider, userRepo)
+        paymentHandler := httpinterfaces.NewPaymentHandler(paymentService)
 
         userHandler := httpinterfaces.NewUserHandler(userService)
         taskHandler := httpinterfaces.NewTaskHandler(taskService)
-        httpinterfaces.RegisterRoutes(router, userHandler, taskHandler, infocarHandler)
+        httpinterfaces.RegisterRoutes(router, userHandler, taskHandler, infocarHandler, paymentHandler)
     } else {
         client, err := firestore.NewClient(cfg.FirebaseProjectID)
         if err != nil {
@@ -47,10 +51,13 @@ func Run() error {
         infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
         infocarService := NewInfocarService(infocarClient, userRepo, 1)
         infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
+        paymentProvider := paymentinfra.NewMockProvider()
+        paymentService := NewPaymentService(paymentProvider, userRepo)
+        paymentHandler := httpinterfaces.NewPaymentHandler(paymentService)
 
         userHandler := httpinterfaces.NewUserHandler(userService)
         taskHandler := httpinterfaces.NewTaskHandler(taskService)
-        httpinterfaces.RegisterRoutes(router, userHandler, taskHandler, infocarHandler)
+        httpinterfaces.RegisterRoutes(router, userHandler, taskHandler, infocarHandler, paymentHandler)
     }
 
     addr := fmt.Sprintf(":%s", cfg.Port)
