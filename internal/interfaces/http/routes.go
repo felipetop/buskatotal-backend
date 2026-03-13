@@ -2,7 +2,7 @@ package http
 
 import "github.com/gin-gonic/gin"
 
-func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, taskHandler *TaskHandler) {
+func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, taskHandler *TaskHandler, infocarHandler *InfocarHandler) {
 
     users := router.Group("/users")
     {
@@ -20,5 +20,12 @@ func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, taskHandler *T
         tasks.GET("", taskHandler.ListByUser)
         tasks.PUT("/:id", taskHandler.Update)
         tasks.DELETE("/:id", taskHandler.Delete)
+    }
+
+    if infocarHandler != nil {
+        infocar := router.Group("/infocar")
+        {
+            infocar.GET("/agregados-b/:tipo/:valor", infocarHandler.GetAgregadosB)
+        }
     }
 }

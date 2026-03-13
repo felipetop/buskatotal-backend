@@ -8,6 +8,7 @@ import (
 
     "buskatotal-backend/configs"
     "buskatotal-backend/internal/infra/firestore"
+    "buskatotal-backend/internal/infra/infocar"
     "buskatotal-backend/internal/infra/memory"
     httpinterfaces "buskatotal-backend/internal/interfaces/http"
 )
@@ -20,6 +21,10 @@ func Run() error {
         c.JSON(http.StatusOK, gin.H{"status": "ok"})
     })
 
+    infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
+    infocarService := NewInfocarService(infocarClient)
+    infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
+
     if cfg.UseMockDB || cfg.FirebaseProjectID == "" {
         userRepo := memory.NewUserRepository()
         taskRepo := memory.NewTaskRepository()
@@ -28,7 +33,7 @@ func Run() error {
 
         userHandler := httpinterfaces.NewUserHandler(userService)
         taskHandler := httpinterfaces.NewTaskHandler(taskService)
-        httpinterfaces.RegisterRoutes(router, userHandler, taskHandler)
+        httpinterfaces.RegisterRoutes(router, userHandler, taskHandler, infocarHandler)
     } else {
         client, err := firestore.NewClient(cfg.FirebaseProjectID)
         if err != nil {
@@ -43,7 +48,7 @@ func Run() error {
 
         userHandler := httpinterfaces.NewUserHandler(userService)
         taskHandler := httpinterfaces.NewTaskHandler(taskService)
-        httpinterfaces.RegisterRoutes(router, userHandler, taskHandler)
+        httpinterfaces.RegisterRoutes(router, userHandler, taskHandler, infocarHandler)
     }
 
     addr := fmt.Sprintf(":%s", cfg.Port)
