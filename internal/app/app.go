@@ -33,9 +33,7 @@ func Run() error {
 
     if cfg.UseMockDB || cfg.FirebaseProjectID == "" {
         userRepo := memory.NewUserRepository()
-        taskRepo := memory.NewTaskRepository()
         userService := NewUserService(userRepo)
-        taskService := NewTaskService(taskRepo)
         infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
         infocarService := NewInfocarService(infocarClient, userRepo, 1)
         infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
@@ -44,8 +42,7 @@ func Run() error {
         paymentHandler := httpinterfaces.NewPaymentHandler(paymentService)
 
         userHandler := httpinterfaces.NewUserHandler(userService)
-        taskHandler := httpinterfaces.NewTaskHandler(taskService)
-        httpinterfaces.RegisterRoutes(router, userHandler, taskHandler, infocarHandler, paymentHandler, authMiddleware)
+        httpinterfaces.RegisterRoutes(router, userHandler, infocarHandler, paymentHandler, authMiddleware)
     } else {
         client, err := firestore.NewClient(cfg.FirebaseProjectID)
         if err != nil {
@@ -54,9 +51,7 @@ func Run() error {
         defer client.Close()
 
         userRepo := firestore.NewUserRepository(client)
-        taskRepo := firestore.NewTaskRepository(client)
         userService := NewUserService(userRepo)
-        taskService := NewTaskService(taskRepo)
         infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
         infocarService := NewInfocarService(infocarClient, userRepo, 1)
         infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
@@ -65,8 +60,7 @@ func Run() error {
         paymentHandler := httpinterfaces.NewPaymentHandler(paymentService)
 
         userHandler := httpinterfaces.NewUserHandler(userService)
-        taskHandler := httpinterfaces.NewTaskHandler(taskService)
-        httpinterfaces.RegisterRoutes(router, userHandler, taskHandler, infocarHandler, paymentHandler, authMiddleware)
+        httpinterfaces.RegisterRoutes(router, userHandler, infocarHandler, paymentHandler, authMiddleware)
     }
 
     addr := fmt.Sprintf(":%s", cfg.Port)

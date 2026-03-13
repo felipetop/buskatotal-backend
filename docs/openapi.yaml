@@ -92,71 +92,6 @@ paths:
       responses:
         "204":
           description: Sem conteúdo
-  /tasks:
-    post:
-      summary: Criar tarefa
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TaskInput"
-      responses:
-        "201":
-          description: Criado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Task"
-    get:
-      summary: Listar tarefas por usuário
-      parameters:
-        - $ref: "#/components/parameters/UserIdQuery"
-      responses:
-        "200":
-          description: Lista de tarefas
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Task"
-  /tasks/{id}:
-    get:
-      summary: Buscar tarefa por ID
-      parameters:
-        - $ref: "#/components/parameters/TaskIdPath"
-      responses:
-        "200":
-          description: Tarefa
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Task"
-    put:
-      summary: Atualizar tarefa
-      parameters:
-        - $ref: "#/components/parameters/TaskIdPath"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TaskInput"
-      responses:
-        "200":
-          description: Atualizada
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Task"
-    delete:
-      summary: Remover tarefa
-      parameters:
-        - $ref: "#/components/parameters/TaskIdPath"
-      responses:
-        "204":
-          description: Sem conteúdo
   /infocar/agregados-b/{tipo}/{valor}:
     get:
       summary: Consultar Agregados B (Infocar)
@@ -219,18 +154,6 @@ components:
       required: true
       schema:
         type: string
-    TaskIdPath:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: string
-    UserIdQuery:
-      name: userId
-      in: query
-      required: true
-      schema:
-        type: string
     MockAuthHeader:
       name: X-User-Id
       in: header
@@ -271,25 +194,6 @@ components:
               type: integer
               format: int64
               description: Saldo atual do usuário.
-    TaskInput:
-      type: object
-      required: [userId, title]
-      properties:
-        userId:
-          type: string
-        title:
-          type: string
-        description:
-          type: string
-        done:
-          type: boolean
-    Task:
-      allOf:
-        - $ref: "#/components/schemas/TaskInput"
-        - type: object
-          properties:
-            id:
-              type: string
     AgregadosBResponse:
       type: object
       properties:

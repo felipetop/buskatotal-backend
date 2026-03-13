@@ -67,22 +67,7 @@ Exemplo payload:
 ```
 
 ### Tasks
-- `POST /tasks`
-- `GET /tasks?userId=...`
-- `GET /tasks/:id`
-- `PUT /tasks/:id`
-- `DELETE /tasks/:id`
-
-Exemplo payload:
-
-```json
-{
-  "userId": "user-id",
-  "title": "Comprar pão",
-  "description": "Ir à padaria",
-  "done": false
-}
-```
+> Removido da documentação simplificada.
 
 ### Infocar (Agregados B)
 - `GET /infocar/agregados-b/:tipo/:valor`
