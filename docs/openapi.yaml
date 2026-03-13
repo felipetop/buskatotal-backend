@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: BuskaTotal Backend API
   description: |
-    API para gestão de usuários, tarefas e consultas Infocar (Agregados B).
+    API para gestão de usuários e consultas Infocar (Agregados B).
 
     **Observação de segurança:**
     - Autenticação por estratégia: `AUTH_MODE=mock` (local) ou `AUTH_MODE=jwt` (prod).
@@ -167,7 +167,7 @@ components:
       required: false
       schema:
         type: string
-      description: Usado quando AUTH_MODE=jwt. Formato: Bearer <token>.
+      description: "Usado quando AUTH_MODE=jwt. Formato: Bearer <token>."
   schemas:
     UserInput:
       type: object
