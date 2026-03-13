@@ -3,6 +3,7 @@ package app
 import (
     "fmt"
     "net/http"
+    "time"
 
     "github.com/gin-gonic/gin"
 
@@ -34,6 +35,7 @@ func Run() error {
     if cfg.UseMockDB || cfg.FirebaseProjectID == "" {
         userRepo := memory.NewUserRepository()
         userService := NewUserService(userRepo)
+        authService := NewAuthService(userRepo, cfg.AuthJWTSecret, 24*time.Hour)
         infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
         infocarService := NewInfocarService(infocarClient, userRepo, 1)
         infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
@@ -42,7 +44,8 @@ func Run() error {
         paymentHandler := httpinterfaces.NewPaymentHandler(paymentService)
 
         userHandler := httpinterfaces.NewUserHandler(userService)
-        httpinterfaces.RegisterRoutes(router, userHandler, infocarHandler, paymentHandler, authMiddleware)
+        authHandler := httpinterfaces.NewAuthHandler(authService)
+        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware)
     } else {
         client, err := firestore.NewClient(cfg.FirebaseProjectID)
         if err != nil {
@@ -52,6 +55,7 @@ func Run() error {
 
         userRepo := firestore.NewUserRepository(client)
         userService := NewUserService(userRepo)
+        authService := NewAuthService(userRepo, cfg.AuthJWTSecret, 24*time.Hour)
         infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
         infocarService := NewInfocarService(infocarClient, userRepo, 1)
         infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
@@ -60,7 +64,8 @@ func Run() error {
         paymentHandler := httpinterfaces.NewPaymentHandler(paymentService)
 
         userHandler := httpinterfaces.NewUserHandler(userService)
-        httpinterfaces.RegisterRoutes(router, userHandler, infocarHandler, paymentHandler, authMiddleware)
+        authHandler := httpinterfaces.NewAuthHandler(authService)
+        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware)
     }
 
     addr := fmt.Sprintf(":%s", cfg.Port)

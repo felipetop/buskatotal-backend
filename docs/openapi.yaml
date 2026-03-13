@@ -54,6 +54,42 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/User"
+  /auth/register:
+    post:
+      summary: Registrar usuário (email/senha)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthRegisterInput"
+      responses:
+        "201":
+          description: Usuário registrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Erro de validação
+  /auth/login:
+    post:
+      summary: Login (email/senha)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthLoginInput"
+      responses:
+        "200":
+          description: Login realizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Credenciais inválidas
   /users/{id}:
     get:
       summary: Buscar usuário por ID
@@ -171,12 +207,15 @@ components:
   schemas:
     UserInput:
       type: object
-      required: [name, email]
+      required: [name, email, password]
       properties:
         name:
           type: string
         email:
           type: string
+        password:
+          type: string
+          format: password
     User:
       allOf:
         - $ref: "#/components/schemas/UserInput"
@@ -184,6 +223,8 @@ components:
           properties:
             id:
               type: string
+            password:
+              readOnly: true
             createdAt:
               type: string
               format: date-time
@@ -194,6 +235,33 @@ components:
               type: integer
               format: int64
               description: Saldo atual do usuário.
+    AuthRegisterInput:
+      type: object
+      required: [email, password]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+          format: password
+    AuthLoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+          format: password
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
     AgregadosBResponse:
       type: object
       properties:

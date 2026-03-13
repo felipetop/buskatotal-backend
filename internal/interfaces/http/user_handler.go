@@ -5,6 +5,7 @@ import (
     "net/http"
 
     "github.com/gin-gonic/gin"
+    "golang.org/x/crypto/bcrypt"
 
     "buskatotal-backend/internal/domain/user"
 )
@@ -24,6 +25,7 @@ type UserHandler struct {
 type userInput struct {
     Name  string `json:"name"`
     Email string `json:"email"`
+    Password string `json:"password"`
 }
 
 func NewUserHandler(service UserService) *UserHandler {
@@ -37,9 +39,21 @@ func (h *UserHandler) Create(c *gin.Context) {
         return
     }
 
+    if input.Password == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "password is required"})
+        return
+    }
+
+    hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "could not hash password"})
+        return
+    }
+
     created, err := h.service.Create(c.Request.Context(), user.User{
-        Name:  input.Name,
-        Email: input.Email,
+        Name:         input.Name,
+        Email:        input.Email,
+        PasswordHash: string(hash),
     })
     if err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

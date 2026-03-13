@@ -43,6 +43,18 @@ func (r *UserRepository) GetByID(ctx context.Context, id string) (user.User, err
     return entity, nil
 }
 
+func (r *UserRepository) GetByEmail(ctx context.Context, email string) (user.User, error) {
+    r.mu.RLock()
+    defer r.mu.RUnlock()
+
+    for _, entity := range r.items {
+        if entity.Email == email {
+            return entity, nil
+        }
+    }
+    return user.User{}, errors.New("user not found")
+}
+
 func (r *UserRepository) List(ctx context.Context) ([]user.User, error) {
     r.mu.RLock()
     defer r.mu.RUnlock()

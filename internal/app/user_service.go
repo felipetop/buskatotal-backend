@@ -19,6 +19,9 @@ func (s *UserService) Create(ctx context.Context, input user.User) (user.User, e
     if input.Name == "" || input.Email == "" {
         return user.User{}, errors.New("name and email are required")
     }
+    if input.PasswordHash == "" {
+        return user.User{}, errors.New("password is required")
+    }
     return s.repo.Create(ctx, input)
 }
 
