@@ -14,6 +14,9 @@ type Config struct {
     InfocarUser        string
     InfocarPassword    string
     InfocarBaseURL     string
+    AuthMode           string
+    AuthHeader         string
+    AuthJWTSecret      string
 }
 
 func Load() Config {
@@ -28,6 +31,9 @@ func Load() Config {
         InfocarUser:    getEnv("INFOCAR_USER", ""),
         InfocarPassword: getEnv("INFOCAR_PASSWORD", ""),
         InfocarBaseURL: getEnv("INFOCAR_BASE_URL", "https://api.datacast3.com/api"),
+        AuthMode:      getEnv("AUTH_MODE", "mock"),
+        AuthHeader:    getEnv("AUTH_HEADER", "X-User-Id"),
+        AuthJWTSecret: getEnv("AUTH_JWT_SECRET", ""),
     }
 }
 

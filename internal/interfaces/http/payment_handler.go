@@ -26,9 +26,19 @@ func NewPaymentHandler(service PaymentService) *PaymentHandler {
 }
 
 func (h *PaymentHandler) Credit(c *gin.Context) {
+    authUserID, ok := GetAuthUserID(c)
+    if !ok || authUserID == "" {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "missing authenticated user"})
+        return
+    }
+
     userID := c.Param("id")
     if userID == "" {
         c.JSON(http.StatusBadRequest, gin.H{"error": "user id is required"})
+        return
+    }
+    if userID != authUserID {
+        c.JSON(http.StatusForbidden, gin.H{"error": "cannot credit another user"})
         return
     }
 

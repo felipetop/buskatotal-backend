@@ -22,9 +22,9 @@ func NewInfocarHandler(service InfocarService) *InfocarHandler {
 }
 
 func (h *InfocarHandler) GetAgregadosB(c *gin.Context) {
-    userID := c.GetHeader("X-User-Id")
-    if userID == "" {
-        c.JSON(http.StatusUnauthorized, gin.H{"error": "missing X-User-Id header"})
+    userID, ok := GetAuthUserID(c)
+    if !ok || userID == "" {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "missing authenticated user"})
         return
     }
 

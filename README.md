@@ -22,6 +22,9 @@ setx FIREBASE_PROJECT_ID "seu-project-id"
 setx GOOGLE_APPLICATION_CREDENTIALS "C:\caminho\para\service-account.json"
 setx PORT "8080"
 setx USE_MOCK_DB "false"
+setx AUTH_MODE "mock"
+setx AUTH_HEADER "X-User-Id"
+setx AUTH_JWT_SECRET ""
 ```
 
 > Observação: Após `setx`, abra um novo terminal para recarregar o PATH/envs.
@@ -85,7 +88,8 @@ Exemplo payload:
 - `GET /infocar/agregados-b/:tipo/:valor`
 
 Headers obrigatórios:
-- `X-User-Id`: ID do usuário com saldo (mock)
+- Modo mock: `X-User-Id` (ID do usuário)
+- Modo jwt: `Authorization: Bearer <token>` (claim `userId`)
 
 Exemplo:
 
@@ -106,6 +110,15 @@ Exemplo payload:
 ```
 
 > Observação: este endpoint é mock. Em produção, será integrado a um provedor real de pagamento.
+
+## Autenticação
+
+Este projeto suporta dois modos:
+
+- **Mock (local)**: `AUTH_MODE=mock` e header configurado por `AUTH_HEADER` (default `X-User-Id`).
+- **JWT (produção)**: `AUTH_MODE=jwt` e `AUTH_JWT_SECRET` para validar tokens.
+
+O middleware injeta o `userId` no contexto e protege as rotas de Infocar e pagamentos.
 
 ## Estrutura (DDD)
 

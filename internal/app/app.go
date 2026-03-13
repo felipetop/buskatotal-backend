@@ -10,6 +10,7 @@ import (
     "buskatotal-backend/internal/infra/firestore"
     "buskatotal-backend/internal/infra/infocar"
     "buskatotal-backend/internal/infra/memory"
+    authinfra "buskatotal-backend/internal/infra/auth"
     paymentinfra "buskatotal-backend/internal/infra/payment"
     httpinterfaces "buskatotal-backend/internal/interfaces/http"
 )
@@ -21,6 +22,14 @@ func Run() error {
     router.GET("/health", func(c *gin.Context) {
         c.JSON(http.StatusOK, gin.H{"status": "ok"})
     })
+
+    var authProvider httpinterfaces.AuthProvider
+    if cfg.AuthMode == "jwt" {
+        authProvider = authinfra.NewJWTProvider(cfg.AuthJWTSecret)
+    } else {
+        authProvider = authinfra.NewMockProvider(cfg.AuthHeader)
+    }
+    authMiddleware := httpinterfaces.NewAuthMiddleware(authProvider, cfg.AuthHeader)
 
     if cfg.UseMockDB || cfg.FirebaseProjectID == "" {
         userRepo := memory.NewUserRepository()
@@ -36,7 +45,7 @@ func Run() error {
 
         userHandler := httpinterfaces.NewUserHandler(userService)
         taskHandler := httpinterfaces.NewTaskHandler(taskService)
-        httpinterfaces.RegisterRoutes(router, userHandler, taskHandler, infocarHandler, paymentHandler)
+        httpinterfaces.RegisterRoutes(router, userHandler, taskHandler, infocarHandler, paymentHandler, authMiddleware)
     } else {
         client, err := firestore.NewClient(cfg.FirebaseProjectID)
         if err != nil {
@@ -57,7 +66,7 @@ func Run() error {
 
         userHandler := httpinterfaces.NewUserHandler(userService)
         taskHandler := httpinterfaces.NewTaskHandler(taskService)
-        httpinterfaces.RegisterRoutes(router, userHandler, taskHandler, infocarHandler, paymentHandler)
+        httpinterfaces.RegisterRoutes(router, userHandler, taskHandler, infocarHandler, paymentHandler, authMiddleware)
     }
 
     addr := fmt.Sprintf(":%s", cfg.Port)

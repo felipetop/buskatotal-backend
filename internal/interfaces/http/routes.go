@@ -2,7 +2,7 @@ package http
 
 import "github.com/gin-gonic/gin"
 
-func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, taskHandler *TaskHandler, infocarHandler *InfocarHandler, paymentHandler *PaymentHandler) {
+func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, taskHandler *TaskHandler, infocarHandler *InfocarHandler, paymentHandler *PaymentHandler, authMiddleware *AuthMiddleware) {
 
     users := router.Group("/users")
     {
@@ -24,6 +24,9 @@ func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, taskHandler *T
 
     if paymentHandler != nil {
         payments := router.Group("/payments")
+        if authMiddleware != nil {
+            payments.Use(authMiddleware.Handler())
+        }
         {
             payments.POST("/users/:id/credit", paymentHandler.Credit)
         }
@@ -31,6 +34,9 @@ func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, taskHandler *T
 
     if infocarHandler != nil {
         infocar := router.Group("/infocar")
+        if authMiddleware != nil {
+            infocar.Use(authMiddleware.Handler())
+        }
         {
             infocar.GET("/agregados-b/:tipo/:valor", infocarHandler.GetAgregadosB)
         }
