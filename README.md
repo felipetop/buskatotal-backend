@@ -1,2 +1,78 @@
 # buskatotal-backend
-buskatotal - sistema de busca de dados pessoais
+
+Backend em Go (Gin) com Firestore usando DDD, DRY e KISS. Inclui CRUD de **Users** e **Tasks**.
+
+## Requisitos
+
+- Go 1.22+ (testado em 1.26.1)
+- Conta Firebase + Firestore habilitado
+- Arquivo de credenciais (Service Account JSON)
+
+## Configuração
+
+Crie um arquivo de variáveis de ambiente ou exporte no terminal:
+
+```bash
+setx FIREBASE_PROJECT_ID "seu-project-id"
+setx GOOGLE_APPLICATION_CREDENTIALS "C:\caminho\para\service-account.json"
+setx PORT "8080"
+```
+
+> Observação: Após `setx`, abra um novo terminal para recarregar o PATH/envs.
+
+## Rodando a API
+
+```bash
+go mod tidy
+go run ./cmd/api
+```
+
+## Endpoints
+
+### Health
+- `GET /health`
+
+### Users
+- `POST /users`
+- `GET /users`
+- `GET /users/:id`
+- `PUT /users/:id`
+- `DELETE /users/:id`
+
+Exemplo payload:
+
+```json
+{
+  "name": "Maria",
+  "email": "maria@email.com"
+}
+```
+
+### Tasks
+- `POST /tasks`
+- `GET /tasks?userId=...`
+- `GET /tasks/:id`
+- `PUT /tasks/:id`
+- `DELETE /tasks/:id`
+
+Exemplo payload:
+
+```json
+{
+  "userId": "user-id",
+  "title": "Comprar pão",
+  "description": "Ir à padaria",
+  "done": false
+}
+```
+
+## Estrutura (DDD)
+
+```
+cmd/api            -> bootstrap do servidor
+configs            -> configuração e envs
+internal/domain    -> entidades e interfaces de repositório
+internal/app       -> serviços (casos de uso)
+internal/infra     -> Firestore (implementações)
+internal/interfaces/http -> handlers e rotas HTTP
+```
