@@ -1,6 +1,10 @@
-# buskatotal-backend
+# BuskaTotal Backend
 
-Backend em Go (Gin) com Firestore usando DDD, DRY e KISS. Inclui CRUD de **Users** e **Tasks**.
+BuskaTotal é uma **plataforma de consulta veicular, crédito, dados e jurídico**. Este repositório contém o backend em Go (Gin) com Firestore seguindo DDD, DRY e KISS. Inclui CRUD de **Users** e **Tasks**.
+
+## Documentação
+
+- [Documentação técnica](docs/README.md)
 
 ## Requisitos
 
