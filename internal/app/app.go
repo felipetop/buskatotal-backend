@@ -19,6 +19,10 @@ import (
 func Run() error {
     cfg := configs.Load()
 
+    if cfg.AuthJWTSecret == "" && (cfg.UseMockDB || cfg.FirebaseProjectID == "") {
+        cfg.AuthJWTSecret = "dev-secret"
+    }
+
     router := gin.Default()
     router.Use(func(c *gin.Context) {
         c.Header("Access-Control-Allow-Origin", "*")
