@@ -20,6 +20,16 @@ func Run() error {
     cfg := configs.Load()
 
     router := gin.Default()
+    router.Use(func(c *gin.Context) {
+        c.Header("Access-Control-Allow-Origin", "*")
+        c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-User-Id")
+        if c.Request.Method == http.MethodOptions {
+            c.Status(http.StatusNoContent)
+            return
+        }
+        c.Next()
+    })
     router.GET("/health", func(c *gin.Context) {
         c.JSON(http.StatusOK, gin.H{"status": "ok"})
     })

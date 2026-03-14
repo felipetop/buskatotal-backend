@@ -2,6 +2,7 @@ package firestore
 
 import (
     "context"
+    "errors"
     "time"
 
     "cloud.google.com/go/firestore"
@@ -49,7 +50,7 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (user.Use
         return user.User{}, err
     }
     if len(snaps) == 0 {
-        return user.User{}, firestore.ErrNotFound
+        return user.User{}, errors.New("user not found")
     }
     var entity user.User
     if err := snaps[0].DataTo(&entity); err != nil {
