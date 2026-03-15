@@ -19,7 +19,7 @@ import (
 func Run() error {
     cfg := configs.Load()
 
-    if cfg.AuthJWTSecret == "" && (cfg.UseMockDB || cfg.FirebaseProjectID == "") {
+    if cfg.AuthJWTSecret == "" {
         cfg.AuthJWTSecret = "dev-secret"
     }
 

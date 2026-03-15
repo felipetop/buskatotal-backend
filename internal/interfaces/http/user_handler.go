@@ -2,13 +2,34 @@ package http
 
 import (
     "context"
+    "errors"
     "net/http"
+    "regexp"
 
     "github.com/gin-gonic/gin"
     "golang.org/x/crypto/bcrypt"
 
     "buskatotal-backend/internal/domain/user"
 )
+
+func validatePassword(password string) error {
+    if len(password) < 10 {
+        return errors.New("password must be at least 10 characters long")
+    }
+    if !regexp.MustCompile(`[A-Z]`).MatchString(password) {
+        return errors.New("password must contain at least one uppercase letter (A–Z)")
+    }
+    if !regexp.MustCompile(`[a-z]`).MatchString(password) {
+        return errors.New("password must contain at least one lowercase letter (a–z)")
+    }
+    if !regexp.MustCompile(`[0-9]`).MatchString(password) {
+        return errors.New("password must contain at least one number (0–9)")
+    }
+    if !regexp.MustCompile(`[@!#$%]`).MatchString(password) {
+        return errors.New("password must contain at least one special character (@, !, #, $, %)")
+    }
+    return nil
+}
 
 type UserService interface {
     Create(ctx context.Context, input user.User) (user.User, error)
@@ -41,6 +62,11 @@ func (h *UserHandler) Create(c *gin.Context) {
 
     if input.Password == "" {
         c.JSON(http.StatusBadRequest, gin.H{"error": "password is required"})
+        return
+    }
+
+    if err := validatePassword(input.Password); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
         return
     }
 

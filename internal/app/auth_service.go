@@ -3,6 +3,7 @@ package app
 import (
     "context"
     "errors"
+    "regexp"
     "time"
 
     jwt "github.com/golang-jwt/jwt/v5"
@@ -10,6 +11,25 @@ import (
 
     "buskatotal-backend/internal/domain/user"
 )
+
+func validatePassword(password string) error {
+    if len(password) < 10 {
+        return errors.New("password must be at least 10 characters long")
+    }
+    if !regexp.MustCompile(`[A-Z]`).MatchString(password) {
+        return errors.New("password must contain at least one uppercase letter (A–Z)")
+    }
+    if !regexp.MustCompile(`[a-z]`).MatchString(password) {
+        return errors.New("password must contain at least one lowercase letter (a–z)")
+    }
+    if !regexp.MustCompile(`[0-9]`).MatchString(password) {
+        return errors.New("password must contain at least one number (0–9)")
+    }
+    if !regexp.MustCompile(`[@!#$%]`).MatchString(password) {
+        return errors.New("password must contain at least one special character (@, !, #, $, %)")
+    }
+    return nil
+}
 
 type AuthService struct {
     repo      user.Repository
@@ -24,6 +44,10 @@ func NewAuthService(repo user.Repository, jwtSecret string, tokenTTL time.Durati
 func (s *AuthService) Register(ctx context.Context, name, email, password string) (user.User, string, error) {
     if email == "" || password == "" {
         return user.User{}, "", errors.New("email and password are required")
+    }
+
+    if err := validatePassword(password); err != nil {
+        return user.User{}, "", err
     }
 
     if name == "" {
