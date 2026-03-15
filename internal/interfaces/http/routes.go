@@ -21,6 +21,15 @@ func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, authHandler *A
         users.DELETE("/:id", userHandler.Delete)
     }
 
+    // Balance endpoint — protected, user can only query their own balance.
+    if authMiddleware != nil {
+        balanceGroup := router.Group("/users")
+        balanceGroup.Use(authMiddleware.Handler())
+        balanceGroup.GET("/:id/balance", userHandler.GetBalance)
+    } else {
+        router.GET("/users/:id/balance", userHandler.GetBalance)
+    }
+
     if paymentHandler != nil {
         payments := router.Group("/payments")
 

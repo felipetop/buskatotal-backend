@@ -144,6 +144,36 @@ paths:
                 items:
                   $ref: "#/components/schemas/User"
 
+  /users/{id}/balance:
+    get:
+      summary: Consultar saldo do usuário
+      tags: [Usuários]
+      description: |
+        Retorna o saldo atual em centavos e em reais. Use este endpoint para exibir
+        o crédito disponível antes de fazer uma consulta Infocar ou outra API paga.
+
+        O saldo é creditado automaticamente após pagamento PicPay confirmado.
+        O usuário **só pode consultar seu próprio saldo**.
+      parameters:
+        - $ref: "#/components/parameters/UserIdPath"
+        - $ref: "#/components/parameters/MockAuthHeader"
+        - $ref: "#/components/parameters/JWTAuthHeader"
+      responses:
+        "200":
+          description: Saldo atual
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BalanceResponse"
+              example:
+                user_id: "550e8400-e29b-41d4-a716-446655440000"
+                balance_cents: 2990
+                balance_brl: 29.90
+        "401":
+          description: Não autenticado
+        "403":
+          description: Tentativa de consultar saldo de outro usuário
+
   /users/{id}:
     get:
       summary: Buscar usuário por ID
@@ -433,6 +463,20 @@ components:
         token:
           type: string
           description: JWT para uso nos headers de autenticação
+
+    BalanceResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+        balance_cents:
+          type: integer
+          format: int64
+          description: Saldo em centavos (ex: 2990 = R$ 29,90)
+        balance_brl:
+          type: number
+          format: float
+          description: Saldo em reais (ex: 29.90)
 
     # ── User ──────────────────────────────────────────────────────────────────
     UserInput:

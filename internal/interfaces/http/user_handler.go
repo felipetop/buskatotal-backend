@@ -107,6 +107,34 @@ func (h *UserHandler) GetByID(c *gin.Context) {
     c.JSON(http.StatusOK, userItem)
 }
 
+// GetBalance returns the current balance of the authenticated user.
+// The user can only query their own balance.
+func (h *UserHandler) GetBalance(c *gin.Context) {
+    authUserID, ok := GetAuthUserID(c)
+    if !ok || authUserID == "" {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "missing authenticated user"})
+        return
+    }
+
+    id := c.Param("id")
+    if id != authUserID {
+        c.JSON(http.StatusForbidden, gin.H{"error": "cannot query balance of another user"})
+        return
+    }
+
+    userItem, err := h.service.GetByID(c.Request.Context(), id)
+    if err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "user_id":       userItem.ID,
+        "balance_cents": userItem.Balance,
+        "balance_brl":   float64(userItem.Balance) / 100.0,
+    })
+}
+
 func (h *UserHandler) Update(c *gin.Context) {
     id := c.Param("id")
     var input userInput
