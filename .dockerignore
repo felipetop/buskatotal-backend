@@ -1,0 +1,7 @@
+.git
+.gitignore
+*.md
+docs/
+serviceAccountKey.json
+*.env
+.env*
