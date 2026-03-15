@@ -2,20 +2,46 @@ openapi: 3.0.3
 info:
   title: BuskaTotal Backend API
   description: |
-    API para gestão de usuários e consultas Infocar (Agregados B).
+    API para gestão de usuários, consultas Infocar (Agregados B) e pagamentos via PicPay.
 
-    **Observação de segurança:**
-    - Autenticação por estratégia: `AUTH_MODE=mock` (local) ou `AUTH_MODE=jwt` (prod).
-    - Em modo mock, use o header `X-User-Id` com o ID do usuário.
-    - Em modo jwt, use `Authorization: Bearer <token>` com claim `userId`.
-    - O saldo é mock até a integração do módulo de pagamento.
-  version: 1.0.0
+    ## Autenticação
+    - `AUTH_MODE=mock` (local): use o header `X-User-Id` com o ID do usuário.
+    - `AUTH_MODE=jwt` (produção): use `Authorization: Bearer <token>` com claim `userId`.
+
+    ## Módulo de Pagamento (PicPay)
+    Suporta **cartão de crédito** e **PIX** via checkout PicPay.
+
+    ### Fluxo de pagamento
+    1. Usuário autenticado chama `POST /payments/users/{id}/orders` com o valor e dados do comprador.
+    2. O backend cria um pedido e retorna `payment_url` (checkout PicPay) e `qrcode_text` (PIX copia-e-cola).
+    3. O usuário paga no checkout PicPay (escolhe cartão ou PIX).
+    4. PicPay chama `POST /payments/webhook` quando o status muda.
+    5. O backend re-verifica o status na API PicPay e credita o saldo do usuário se pago.
+
+    ### Ambiente local (mock)
+    Sem a variável `PICPAY_TOKEN`, todos os endpoints de pagamento usam o **MockProvider**:
+    - `CreateOrder` retorna uma URL e QR code fictícios.
+    - `ProcessWebhook` simula aprovação imediata.
+    - Nenhuma chamada real é feita ao PicPay.
+
+    ### Variáveis de ambiente
+    | Variável | Descrição |
+    |---|---|
+    | `PICPAY_TOKEN` | Token da conta PicPay (x-picpay-token). Vazio = mock. |
+    | `APP_BASE_URL` | URL pública do servidor (ex: `https://api.buskatotal.com`). Usada para montar o callbackUrl. |
+
+  version: 2.0.0
 servers:
   - url: http://localhost:8080
+    description: Local (mock)
+  - url: https://api.buskatotal.com
+    description: Produção
+
 paths:
   /health:
     get:
       summary: Health check
+      tags: [Sistema]
       responses:
         "200":
           description: OK
@@ -27,9 +53,71 @@ paths:
                   status:
                     type: string
                     example: ok
+
+  # ── Autenticação ────────────────────────────────────────────────────────────
+
+  /auth/register:
+    post:
+      summary: Registrar usuário
+      tags: [Autenticação]
+      description: |
+        Cria uma conta e retorna o JWT.
+
+        **Regras de senha:**
+        - Mínimo 10 caracteres
+        - 1 letra maiúscula (A–Z)
+        - 1 letra minúscula (a–z)
+        - 1 número (0–9)
+        - 1 caractere especial (@ ! # $ %)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthRegisterInput"
+            example:
+              name: "João Silva"
+              email: "joao@email.com"
+              password: "Senha@1234"
+      responses:
+        "201":
+          description: Usuário registrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: "Erro de validação (ex: senha fraca, email já cadastrado)"
+
+  /auth/login:
+    post:
+      summary: Login
+      tags: [Autenticação]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthLoginInput"
+            example:
+              email: "joao@email.com"
+              password: "Senha@1234"
+      responses:
+        "200":
+          description: Login realizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Credenciais inválidas
+
+  # ── Usuários ─────────────────────────────────────────────────────────────────
+
   /users:
     post:
-      summary: Criar usuário
+      summary: Criar usuário (admin)
+      tags: [Usuários]
       requestBody:
         required: true
         content:
@@ -45,6 +133,7 @@ paths:
                 $ref: "#/components/schemas/User"
     get:
       summary: Listar usuários
+      tags: [Usuários]
       responses:
         "200":
           description: Lista de usuários
@@ -54,45 +143,11 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/User"
-  /auth/register:
-    post:
-      summary: Registrar usuário (email/senha)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AuthRegisterInput"
-      responses:
-        "201":
-          description: Usuário registrado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuthResponse"
-        "400":
-          description: Erro de validação
-  /auth/login:
-    post:
-      summary: Login (email/senha)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AuthLoginInput"
-      responses:
-        "200":
-          description: Login realizado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuthResponse"
-        "401":
-          description: Credenciais inválidas
+
   /users/{id}:
     get:
       summary: Buscar usuário por ID
+      tags: [Usuários]
       parameters:
         - $ref: "#/components/parameters/UserIdPath"
       responses:
@@ -106,6 +161,7 @@ paths:
           description: Não encontrado
     put:
       summary: Atualizar usuário
+      tags: [Usuários]
       parameters:
         - $ref: "#/components/parameters/UserIdPath"
       requestBody:
@@ -123,48 +179,140 @@ paths:
                 $ref: "#/components/schemas/User"
     delete:
       summary: Remover usuário
+      tags: [Usuários]
       parameters:
         - $ref: "#/components/parameters/UserIdPath"
       responses:
         "204":
           description: Sem conteúdo
-  /infocar/agregados-b/{tipo}/{valor}:
-    get:
-      summary: Consultar Agregados B (Infocar)
+
+  # ── Pagamentos ───────────────────────────────────────────────────────────────
+
+  /payments/users/{id}/orders:
+    post:
+      summary: Criar pedido de pagamento (PicPay)
+      tags: [Pagamentos]
       description: |
-        Consulta dados de emplacamento (Agregados B). Requer autenticação.
-        Debita 1 unidade do saldo do usuário (mock).
+        Inicia um pagamento via PicPay. Retorna a URL de checkout (cartão de crédito)
+        e o QR code PIX (copia-e-cola e imagem base64).
+
+        O usuário autenticado **só pode criar pedidos para sua própria conta** — tentativas
+        de criar para outro `{id}` retornam `403`.
+
+        **Ambiente mock (sem PICPAY_TOKEN):** retorna URL e QR code fictícios, sem cobrar nada.
       parameters:
-        - name: tipo
-          in: path
-          required: true
-          schema:
-            type: string
-            enum: [placa, chassi, motor]
-        - name: valor
-          in: path
-          required: true
-          schema:
-            type: string
+        - $ref: "#/components/parameters/UserIdPath"
+        - $ref: "#/components/parameters/MockAuthHeader"
+        - $ref: "#/components/parameters/JWTAuthHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderInput"
+            example:
+              amount_cents: 2990
+              return_url: "https://buskatotal.com/obrigado"
+              buyer:
+                first_name: "João"
+                last_name: "Silva"
+                document: "123.456.789-09"
+                email: "joao@email.com"
+                phone: "+55 11 98765-4321"
+      responses:
+        "201":
+          description: Pedido criado — redirecione o usuário para `payment_url` ou mostre o QR code PIX
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentOrder"
+              example:
+                order_id: "550e8400-e29b-41d4-a716-446655440000"
+                reference_id: "buskatotal-abc12345-1710000000000"
+                status: "pending"
+                amount_cents: 2990
+                payment_url: "https://app.picpay.com/checkout/abc123"
+                qrcode_text: "00020101021226820014BR.GOV.BCB.PIX..."
+                qrcode_base64: "data:image/png;base64,iVBOR..."
+                created_at: "2026-03-15T10:00:00Z"
+        "400":
+          description: Dados inválidos (amount_cents <= 0, CPF ausente, etc.)
+        "401":
+          description: Não autenticado
+        "403":
+          description: Tentativa de criar pedido para outro usuário
+
+    get:
+      summary: Listar pedidos do usuário
+      tags: [Pagamentos]
+      description: |
+        Retorna todos os pedidos de pagamento do usuário autenticado.
+        O usuário **só pode ver seus próprios pedidos**.
+      parameters:
+        - $ref: "#/components/parameters/UserIdPath"
         - $ref: "#/components/parameters/MockAuthHeader"
         - $ref: "#/components/parameters/JWTAuthHeader"
       responses:
         "200":
-          description: Resposta Infocar
+          description: Lista de pedidos
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AgregadosBResponse"
-        "400":
-          description: Erro de validação ou saldo insuficiente
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaymentOrder"
         "401":
-          description: Não autorizado
+          description: Não autenticado
+        "403":
+          description: Tentativa de listar pedidos de outro usuário
+
+  /payments/webhook:
+    post:
+      summary: Webhook PicPay (callback)
+      tags: [Pagamentos]
+      description: |
+        Callback chamado pelos **servidores do PicPay** (comunicação servidor → servidor) quando
+        o status de um pagamento muda. O frontend nunca chama este endpoint diretamente.
+
+        **Como funciona em produção:**
+        Você cadastra a URL `https://api.buskatotal.com/payments/webhook` no painel PicPay.
+        Após o pagamento, o PicPay chama essa URL automaticamente. O backend então re-verifica
+        o status na API PicPay e credita o saldo do usuário se confirmado.
+
+        **Como testar localmente (mock):**
+        Simule a chamada do PicPay com o `referenceId` de um pedido criado — o MockProvider
+        retornará status `paid` e o saldo será creditado.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookInput"
+            example:
+              referenceId: "buskatotal-abc12345-1710000000000"
+              authorizationId: "555008cef7f321d00ef236333"
+      responses:
+        "200":
+          description: Webhook processado (ok true = sucesso, ok false = erro não crítico)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  error:
+                    type: string
+                    description: Presente apenas quando ok=false
+
   /payments/users/{id}/credit:
     post:
-      summary: Creditar saldo (mock)
+      summary: Crédito direto (mock/admin)
+      tags: [Pagamentos]
       description: |
-        Endpoint mock para crédito de saldo. Em produção, isso deve ser substituído
-        por um provedor real de pagamento.
+        Credita saldo diretamente sem passar pelo checkout PicPay.
+        Útil para testes ou créditos administrativos.
+        Em produção com `PICPAY_TOKEN` configurado, retorna erro pois o PicPay não suporta crédito direto.
       parameters:
         - $ref: "#/components/parameters/UserIdPath"
         - $ref: "#/components/parameters/MockAuthHeader"
@@ -175,6 +323,8 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/PaymentCreditInput"
+            example:
+              amount: 5000
       responses:
         "200":
           description: Recibo de crédito
@@ -182,6 +332,48 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PaymentReceipt"
+        "401":
+          description: Não autenticado
+        "403":
+          description: Tentativa de creditar outro usuário
+
+  # ── Infocar ──────────────────────────────────────────────────────────────────
+
+  /infocar/agregados-b/{tipo}/{valor}:
+    get:
+      summary: Consultar Agregados B (Infocar)
+      tags: [Infocar]
+      description: |
+        Consulta dados de emplacamento (Agregados B). Requer autenticação.
+        Debita 1 unidade do saldo do usuário.
+      parameters:
+        - name: tipo
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [placa, chassi, motor]
+          example: placa
+        - name: valor
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "ABC1234"
+        - $ref: "#/components/parameters/MockAuthHeader"
+        - $ref: "#/components/parameters/JWTAuthHeader"
+      responses:
+        "200":
+          description: Resposta Infocar
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgregadosBResponse"
+        "400":
+          description: Saldo insuficiente ou parâmetros inválidos
+        "401":
+          description: Não autenticado
+
 components:
   parameters:
     UserIdPath:
@@ -190,51 +382,24 @@ components:
       required: true
       schema:
         type: string
+      description: ID do usuário (UUID)
     MockAuthHeader:
       name: X-User-Id
       in: header
       required: false
       schema:
         type: string
-      description: Usado quando AUTH_MODE=mock.
+      description: "Usado quando `AUTH_MODE=mock` (local). Valor: ID do usuário."
     JWTAuthHeader:
       name: Authorization
       in: header
       required: false
       schema:
         type: string
-      description: "Usado quando AUTH_MODE=jwt. Formato: Bearer <token>."
+      description: "Usado quando `AUTH_MODE=jwt` (produção). Formato: `Bearer <token>`."
+
   schemas:
-    UserInput:
-      type: object
-      required: [name, email, password]
-      properties:
-        name:
-          type: string
-        email:
-          type: string
-        password:
-          type: string
-          format: password
-    User:
-      allOf:
-        - $ref: "#/components/schemas/UserInput"
-        - type: object
-          properties:
-            id:
-              type: string
-            password:
-              readOnly: true
-            createdAt:
-              type: string
-              format: date-time
-            updatedAt:
-              type: string
-              format: date-time
-            balance:
-              type: integer
-              format: int64
-              description: Saldo atual do usuário.
+    # ── Auth ──────────────────────────────────────────────────────────────────
     AuthRegisterInput:
       type: object
       required: [email, password]
@@ -243,18 +408,23 @@ components:
           type: string
         email:
           type: string
+          format: email
         password:
           type: string
           format: password
+          description: "Mínimo 10 chars, 1 maiúscula, 1 minúscula, 1 número, 1 especial (@ ! # $ %)"
+
     AuthLoginInput:
       type: object
       required: [email, password]
       properties:
         email:
           type: string
+          format: email
         password:
           type: string
           format: password
+
     AuthResponse:
       type: object
       properties:
@@ -262,6 +432,147 @@ components:
           $ref: "#/components/schemas/User"
         token:
           type: string
+          description: JWT para uso nos headers de autenticação
+
+    # ── User ──────────────────────────────────────────────────────────────────
+    UserInput:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        balance:
+          type: integer
+          format: int64
+          description: "Saldo atual em centavos (ex: 2990 = R$ 29,90)"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ── Payment ───────────────────────────────────────────────────────────────
+    OrderBuyer:
+      type: object
+      required: [document, email]
+      properties:
+        first_name:
+          type: string
+          example: "João"
+        last_name:
+          type: string
+          example: "Silva"
+        document:
+          type: string
+          description: "CPF do comprador. Formato: 000.000.000-00"
+          example: "123.456.789-09"
+        email:
+          type: string
+          format: email
+          example: "joao@email.com"
+        phone:
+          type: string
+          example: "+55 11 98765-4321"
+
+    CreateOrderInput:
+      type: object
+      required: [amount_cents, buyer]
+      properties:
+        amount_cents:
+          type: integer
+          format: int64
+          description: "Valor em centavos (ex: 2990 = R$ 29,90)"
+          example: 2990
+        return_url:
+          type: string
+          format: uri
+          description: URL para redirecionar o comprador após o pagamento
+          example: "https://buskatotal.com/obrigado"
+        buyer:
+          $ref: "#/components/schemas/OrderBuyer"
+
+    PaymentOrder:
+      type: object
+      properties:
+        order_id:
+          type: string
+          description: ID interno do pedido
+        reference_id:
+          type: string
+          description: ID de referência enviado ao PicPay
+        status:
+          type: string
+          enum: [pending, paid, expired, cancelled, chargeback]
+          description: Status atual do pedido
+        amount_cents:
+          type: integer
+          format: int64
+          description: Valor em centavos
+        payment_url:
+          type: string
+          format: uri
+          description: URL do checkout PicPay (cartão de crédito + PIX)
+        qrcode_text:
+          type: string
+          description: PIX copia-e-cola
+        qrcode_base64:
+          type: string
+          description: Imagem do QR code PIX em base64 (data:image/png;base64,...)
+        created_at:
+          type: string
+          format: date-time
+
+    WebhookInput:
+      type: object
+      required: [referenceId]
+      properties:
+        referenceId:
+          type: string
+          description: ID de referência do pedido (enviado pelo PicPay)
+        authorizationId:
+          type: string
+          description: ID de autorização PicPay (opcional)
+
+    PaymentCreditInput:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: integer
+          format: int64
+          description: Valor a creditar em centavos
+
+    PaymentReceipt:
+      type: object
+      properties:
+        provider:
+          type: string
+          example: "mock"
+        reference:
+          type: string
+        amount:
+          type: integer
+          format: int64
+
+    # ── Infocar ───────────────────────────────────────────────────────────────
     AgregadosBResponse:
       type: object
       properties:
@@ -274,21 +585,3 @@ components:
         dados:
           type: object
           additionalProperties: true
-    PaymentCreditInput:
-      type: object
-      required: [amount]
-      properties:
-        amount:
-          type: integer
-          format: int64
-          description: Valor a creditar (mock).
-    PaymentReceipt:
-      type: object
-      properties:
-        provider:
-          type: string
-        reference:
-          type: string
-        amount:
-          type: integer
-          format: int64

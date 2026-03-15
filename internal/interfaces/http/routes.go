@@ -23,11 +23,22 @@ func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, authHandler *A
 
     if paymentHandler != nil {
         payments := router.Group("/payments")
+
+        // Webhook is public — PicPay calls it with no user token.
+        payments.POST("/webhook", paymentHandler.Webhook)
+
         if authMiddleware != nil {
-            payments.Use(authMiddleware.Handler())
-        }
-        {
+            protected := payments.Group("")
+            protected.Use(authMiddleware.Handler())
+            {
+                protected.POST("/users/:id/credit", paymentHandler.Credit)
+                protected.POST("/users/:id/orders", paymentHandler.CreateOrder)
+                protected.GET("/users/:id/orders", paymentHandler.ListOrders)
+            }
+        } else {
             payments.POST("/users/:id/credit", paymentHandler.Credit)
+            payments.POST("/users/:id/orders", paymentHandler.CreateOrder)
+            payments.GET("/users/:id/orders", paymentHandler.ListOrders)
         }
     }
 

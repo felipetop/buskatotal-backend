@@ -8,6 +8,7 @@ import (
     "github.com/gin-gonic/gin"
 
     "buskatotal-backend/configs"
+    "buskatotal-backend/internal/domain/payment"
     "buskatotal-backend/internal/infra/firestore"
     "buskatotal-backend/internal/infra/infocar"
     "buskatotal-backend/internal/infra/memory"
@@ -46,15 +47,23 @@ func Run() error {
     }
     authMiddleware := httpinterfaces.NewAuthMiddleware(authProvider, cfg.AuthHeader)
 
+    // Select payment provider: use PicPay when a token is configured, mock otherwise.
+    var paymentProvider payment.Provider
+    if cfg.PicPayToken != "" {
+        paymentProvider = paymentinfra.NewPicPayProvider(cfg.PicPayToken)
+    } else {
+        paymentProvider = paymentinfra.NewMockProvider()
+    }
+
     if cfg.UseMockDB || cfg.FirebaseProjectID == "" {
         userRepo := memory.NewUserRepository()
+        orderRepo := memory.NewOrderRepository()
         userService := NewUserService(userRepo)
         authService := NewAuthService(userRepo, cfg.AuthJWTSecret, 24*time.Hour)
         infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
         infocarService := NewInfocarService(infocarClient, userRepo, 1)
         infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
-        paymentProvider := paymentinfra.NewMockProvider()
-        paymentService := NewPaymentService(paymentProvider, userRepo)
+        paymentService := NewPaymentService(paymentProvider, orderRepo, userRepo, cfg.AppBaseURL)
         paymentHandler := httpinterfaces.NewPaymentHandler(paymentService)
 
         userHandler := httpinterfaces.NewUserHandler(userService)
@@ -68,13 +77,13 @@ func Run() error {
         defer client.Close()
 
         userRepo := firestore.NewUserRepository(client)
+        orderRepo := memory.NewOrderRepository() // TODO: replace with FirestoreOrderRepository when ready
         userService := NewUserService(userRepo)
         authService := NewAuthService(userRepo, cfg.AuthJWTSecret, 24*time.Hour)
         infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
         infocarService := NewInfocarService(infocarClient, userRepo, 1)
         infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
-        paymentProvider := paymentinfra.NewMockProvider()
-        paymentService := NewPaymentService(paymentProvider, userRepo)
+        paymentService := NewPaymentService(paymentProvider, orderRepo, userRepo, cfg.AppBaseURL)
         paymentHandler := httpinterfaces.NewPaymentHandler(paymentService)
 
         userHandler := httpinterfaces.NewUserHandler(userService)
