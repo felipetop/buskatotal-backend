@@ -142,11 +142,13 @@ func (s *PaymentService) ProcessWebhook(ctx context.Context, referenceID string)
 func (s *PaymentService) ReconcileOrders(ctx context.Context) {
 	orders, err := s.orderRepo.GetPendingOrders(ctx)
 	if err != nil {
+		fmt.Printf("reconciliation: get pending orders error: %v\n", err)
 		return
 	}
+	fmt.Printf("reconciliation: found %d pending orders\n", len(orders))
 	for _, order := range orders {
 		if err := s.ProcessWebhook(ctx, order.ReferenceID); err != nil {
-			continue
+			fmt.Printf("reconciliation: order %s error: %v\n", order.ReferenceID, err)
 		}
 	}
 }

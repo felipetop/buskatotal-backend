@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"sync"
@@ -18,7 +19,7 @@ import (
 const (
 	picpayOAuthURL  = "https://api.picpay.com/oauth2/token"
 	picpayCreateURL = "https://api.picpay.com/v1/paymentlink/create"
-	picpayStatusURL = "https://api.picpay.com/v1/paymentlink/%s/status"
+	picpayStatusURL = "https://api.picpay.com/v1/paymentlink/%s"
 )
 
 // PicPayProvider implements domain.Provider using the PicPay E-commerce V2 API.
@@ -136,8 +137,11 @@ type picpayCreateResponse struct {
 }
 
 type picpayStatusResponse struct {
-	TxID   string `json:"txid"`
 	Status string `json:"status"`
+	// transactions is a list of payments made against the link
+	Transactions []struct {
+		Status string `json:"status"`
+	} `json:"transactions"`
 }
 
 // ── Provider interface implementation ────────────────────────────────────────
@@ -265,6 +269,15 @@ func (p *PicPayProvider) GetOrderStatus(ctx context.Context, referenceID string)
 	var result picpayStatusResponse
 	if err := json.Unmarshal(responseBytes, &result); err != nil {
 		return "", fmt.Errorf("picpay: decode status response: %w", err)
+	}
+
+	log.Printf("picpay: status response for %s: %s", referenceID, string(responseBytes))
+
+	// If there are transactions, use the status of the most recent one
+	for _, t := range result.Transactions {
+		if t.Status != "" {
+			return mapPicPayStatus(t.Status), nil
+		}
 	}
 
 	return mapPicPayStatus(result.Status), nil
