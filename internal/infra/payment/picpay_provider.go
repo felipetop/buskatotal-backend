@@ -124,6 +124,7 @@ type picpayAmounts struct {
 type picpayOptions struct {
 	AllowCreatePixKey bool   `json:"allow_create_pix_key"`
 	ExpiredAt         string `json:"expired_at"`
+	NotificationURL   string `json:"notification_url,omitempty"`
 }
 
 type picpayCreateResponse struct {
@@ -174,6 +175,7 @@ func (p *PicPayProvider) CreateOrder(ctx context.Context, input domain.CreateOrd
 		Options: picpayOptions{
 			AllowCreatePixKey: true,
 			ExpiredAt:         expiresAt,
+			NotificationURL:   input.CallbackURL,
 		},
 	}
 
