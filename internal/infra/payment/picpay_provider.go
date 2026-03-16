@@ -19,7 +19,6 @@ const (
 	picpayOAuthURL  = "https://api.picpay.com/oauth2/token"
 	picpayCreateURL = "https://api.picpay.com/v1/paymentlink/create"
 	picpayStatusURL = "https://api.picpay.com/v1/paymentlink/%s/status"
-	picpayScope     = "paymentlink.write paymentlink.read"
 )
 
 // PicPayProvider implements domain.Provider using the PicPay E-commerce V2 API.
@@ -55,7 +54,6 @@ func (p *PicPayProvider) getAccessToken(ctx context.Context) (string, error) {
 		"grant_type":    "client_credentials",
 		"client_id":     p.clientID,
 		"client_secret": p.clientSecret,
-		"scope":         picpayScope,
 	}
 	tokenRaw, err := json.Marshal(tokenBody)
 	if err != nil {
