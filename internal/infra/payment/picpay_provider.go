@@ -51,17 +51,22 @@ func (p *PicPayProvider) getAccessToken(ctx context.Context) (string, error) {
 		return p.accessToken, nil
 	}
 
-	data := url.Values{}
-	data.Set("grant_type", "client_credentials")
-	data.Set("client_id", p.clientID)
-	data.Set("client_secret", p.clientSecret)
-	data.Set("scope", "ecommerce")
+	tokenBody := map[string]string{
+		"grant_type":    "client_credentials",
+		"client_id":     p.clientID,
+		"client_secret": p.clientSecret,
+	}
+	tokenRaw, err := json.Marshal(tokenBody)
+	if err != nil {
+		return "", fmt.Errorf("picpay oauth2: marshal body: %w", err)
+	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, picpayOAuthURL, strings.NewReader(data.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, picpayOAuthURL, strings.NewReader(string(tokenRaw)))
 	if err != nil {
 		return "", fmt.Errorf("picpay oauth2: build request: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
 
 	resp, err := p.client.Do(req)
 	if err != nil {
