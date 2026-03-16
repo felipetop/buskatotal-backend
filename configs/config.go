@@ -17,7 +17,8 @@ type Config struct {
     AuthMode           string
     AuthHeader         string
     AuthJWTSecret      string
-    PicPayToken        string // x-picpay-token for PicPay E-commerce API
+    PicPayClientID     string // OAuth2 client_id for PicPay Checkout API
+    PicPayClientSecret string // OAuth2 client_secret for PicPay Checkout API
     AppBaseURL         string // public base URL used to build the PicPay callback URL
 }
 
@@ -36,7 +37,8 @@ func Load() Config {
         AuthMode:      getEnv("AUTH_MODE", "mock"),
         AuthHeader:    getEnv("AUTH_HEADER", "X-User-Id"),
         AuthJWTSecret: getEnv("AUTH_JWT_SECRET", ""),
-        PicPayToken:   getEnv("PICPAY_TOKEN", ""),
+        PicPayClientID:     getEnv("PICPAY_CLIENT_ID", ""),
+        PicPayClientSecret: getEnv("PICPAY_CLIENT_SECRET", ""),
         AppBaseURL:    getEnv("APP_BASE_URL", "http://localhost:8080"),
     }
 }

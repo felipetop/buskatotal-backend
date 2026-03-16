@@ -49,8 +49,8 @@ func Run() error {
 
     // Select payment provider: use PicPay when a token is configured, mock otherwise.
     var paymentProvider payment.Provider
-    if cfg.PicPayToken != "" {
-        paymentProvider = paymentinfra.NewPicPayProvider(cfg.PicPayToken)
+    if cfg.PicPayClientID != "" && cfg.PicPayClientSecret != "" {
+        paymentProvider = paymentinfra.NewPicPayProvider(cfg.PicPayClientID, cfg.PicPayClientSecret)
     } else {
         paymentProvider = paymentinfra.NewMockProvider()
     }

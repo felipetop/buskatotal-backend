@@ -8,89 +8,140 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
+	"sync"
 	"time"
 
 	domain "buskatotal-backend/internal/domain/payment"
 )
 
-const picpayBaseURL = "https://appws.picpay.com/ecommerce/public/payments"
+const (
+	picpayOAuthURL  = "https://api.picpay.com/oauth2/token"
+	picpayLinkURL   = "https://api.picpay.com/paymentlink/create"
+	picpayStatusURL = "https://api.picpay.com/paymentlink"
+)
 
-// PicPayProvider implements domain.Provider using the PicPay E-commerce API.
+// PicPayProvider implements domain.Provider using the PicPay Link de Pagamento API.
 type PicPayProvider struct {
-	token  string
-	client *http.Client
+	clientID     string
+	clientSecret string
+	client       *http.Client
+
+	mu          sync.Mutex
+	accessToken string
+	tokenExpiry time.Time
 }
 
-func NewPicPayProvider(token string) *PicPayProvider {
+func NewPicPayProvider(clientID, clientSecret string) *PicPayProvider {
 	return &PicPayProvider{
-		token:  token,
-		client: &http.Client{Timeout: 15 * time.Second},
+		clientID:     clientID,
+		clientSecret: clientSecret,
+		client:       &http.Client{Timeout: 15 * time.Second},
 	}
+}
+
+// ── OAuth2 token management ───────────────────────────────────────────────────
+
+func (p *PicPayProvider) getAccessToken(ctx context.Context) (string, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.accessToken != "" && time.Now().Before(p.tokenExpiry) {
+		return p.accessToken, nil
+	}
+
+	data := url.Values{}
+	data.Set("grant_type", "client_credentials")
+	data.Set("client_id", p.clientID)
+	data.Set("client_secret", p.clientSecret)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, picpayOAuthURL, strings.NewReader(data.Encode()))
+	if err != nil {
+		return "", fmt.Errorf("picpay oauth2: build request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("picpay oauth2: http call: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("picpay oauth2: read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("picpay oauth2: unexpected status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var tokenResp struct {
+		AccessToken string `json:"access_token"`
+		ExpiresIn   int    `json:"expires_in"`
+	}
+	if err := json.Unmarshal(body, &tokenResp); err != nil {
+		return "", fmt.Errorf("picpay oauth2: decode response: %w", err)
+	}
+
+	p.accessToken = tokenResp.AccessToken
+	p.tokenExpiry = time.Now().Add(time.Duration(tokenResp.ExpiresIn-30) * time.Second)
+
+	return p.accessToken, nil
 }
 
 // ── PicPay request / response types ──────────────────────────────────────────
 
-type picpayBuyer struct {
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-	Document  string `json:"document"`
-	Email     string `json:"email"`
-	Phone     string `json:"phone"`
+type picpayLinkRequest struct {
+	Name                 string   `json:"name"`
+	Description          string   `json:"description"`
+	Amount               int64    `json:"amount"` // cents
+	PaymentMethods       []string `json:"paymentMethods"`
+	OrderNumber          string   `json:"orderNumber"`
+	RedirectURL          string   `json:"redirectUrl,omitempty"`
+	ExpirationDate       string   `json:"expirationDate"`
+	MaxInstallmentNumber int      `json:"maxInstallmentNumber"`
 }
 
-type picpayCreateRequest struct {
-	ReferenceID string      `json:"referenceId"`
-	CallbackURL string      `json:"callbackUrl"`
-	ReturnURL   string      `json:"returnUrl,omitempty"`
-	Value       float64     `json:"value"` // PicPay expects BRL float (e.g. 10.50)
-	ExpiresAt   string      `json:"expiresAt"`
-	Buyer       picpayBuyer `json:"buyer"`
-}
-
-type picpayQRCode struct {
-	Content string `json:"content"`
-	Base64  string `json:"base64"`
-}
-
-type picpayCreateResponse struct {
-	ReferenceID string       `json:"referenceId"`
-	PaymentURL  string       `json:"paymentUrl"`
-	QRCode      picpayQRCode `json:"qrcode"`
-	ExpiresAt   string       `json:"expiresAt"`
+type picpayLinkResponse struct {
+	Link        string `json:"link"`
+	Deeplink    string `json:"deeplink"`
+	BRCode      string `json:"brcode"`
+	QRCode      string `json:"qrCode"`
+	TxID        string `json:"txid"`
+	OrderNumber string `json:"orderNumber"`
+	Status      string `json:"status"`
 }
 
 type picpayStatusResponse struct {
-	ReferenceID     string `json:"referenceId"`
-	AuthorizationID string `json:"authorizationId"`
-	Status          string `json:"status"`
-}
-
-type picpayErrorResponse struct {
-	Message string `json:"message"`
+	OrderNumber string `json:"orderNumber"`
+	Status      string `json:"status"`
 }
 
 // ── Provider interface implementation ────────────────────────────────────────
 
 func (p *PicPayProvider) CreateOrder(ctx context.Context, input domain.CreateOrderInput) (domain.OrderResult, error) {
-	if p.token == "" {
-		return domain.OrderResult{}, errors.New("picpay token not configured")
+	if p.clientID == "" || p.clientSecret == "" {
+		return domain.OrderResult{}, errors.New("picpay credentials not configured")
+	}
+
+	token, err := p.getAccessToken(ctx)
+	if err != nil {
+		return domain.OrderResult{}, err
 	}
 
 	expiresAt := time.Now().Add(30 * time.Minute).Format(time.RFC3339)
 
-	body := picpayCreateRequest{
-		ReferenceID: input.ReferenceID,
-		CallbackURL: input.CallbackURL,
-		ReturnURL:   input.ReturnURL,
-		Value:       centsToFloat(input.AmountCents),
-		ExpiresAt:   expiresAt,
-		Buyer: picpayBuyer{
-			FirstName: input.Buyer.FirstName,
-			LastName:  input.Buyer.LastName,
-			Document:  input.Buyer.Document,
-			Email:     input.Buyer.Email,
-			Phone:     input.Buyer.Phone,
-		},
+	body := picpayLinkRequest{
+		Name:                 "Depósito BuskaTotal",
+		Description:          fmt.Sprintf("Depósito de R$ %.2f", centsToFloat(input.AmountCents)),
+		Amount:               input.AmountCents,
+		PaymentMethods:       []string{"CREDIT_CARD", "PIX"},
+		OrderNumber:          input.ReferenceID,
+		RedirectURL:          input.ReturnURL,
+		ExpirationDate:       expiresAt,
+		MaxInstallmentNumber: 1,
 	}
 
 	raw, err := json.Marshal(body)
@@ -98,12 +149,12 @@ func (p *PicPayProvider) CreateOrder(ctx context.Context, input domain.CreateOrd
 		return domain.OrderResult{}, fmt.Errorf("picpay: marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, picpayBaseURL, bytes.NewReader(raw))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, picpayLinkURL, bytes.NewReader(raw))
 	if err != nil {
 		return domain.OrderResult{}, fmt.Errorf("picpay: build request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-picpay-token", p.token)
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	resp, err := p.client.Do(req)
 	if err != nil {
@@ -117,41 +168,41 @@ func (p *PicPayProvider) CreateOrder(ctx context.Context, input domain.CreateOrd
 	}
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		var apiErr picpayErrorResponse
-		_ = json.Unmarshal(responseBytes, &apiErr)
-		if apiErr.Message != "" {
-			return domain.OrderResult{}, fmt.Errorf("picpay: %s", apiErr.Message)
-		}
-		return domain.OrderResult{}, fmt.Errorf("picpay: unexpected status %d", resp.StatusCode)
+		return domain.OrderResult{}, fmt.Errorf("picpay: unexpected status %d: %s", resp.StatusCode, string(responseBytes))
 	}
 
-	var result picpayCreateResponse
+	var result picpayLinkResponse
 	if err := json.Unmarshal(responseBytes, &result); err != nil {
 		return domain.OrderResult{}, fmt.Errorf("picpay: decode response: %w", err)
 	}
 
-	expires, _ := time.Parse(time.RFC3339, result.ExpiresAt)
+	expires, _ := time.Parse(time.RFC3339, expiresAt)
 
 	return domain.OrderResult{
-		ReferenceID:  result.ReferenceID,
-		PaymentURL:   result.PaymentURL,
-		QRCodeText:   result.QRCode.Content,
-		QRCodeBase64: result.QRCode.Base64,
+		ReferenceID:  input.ReferenceID,
+		PaymentURL:   result.Link,
+		QRCodeText:   result.BRCode,
+		QRCodeBase64: result.QRCode,
 		ExpiresAt:    expires,
 	}, nil
 }
 
 func (p *PicPayProvider) GetOrderStatus(ctx context.Context, referenceID string) (domain.OrderStatus, error) {
-	if p.token == "" {
-		return "", errors.New("picpay token not configured")
+	if p.clientID == "" || p.clientSecret == "" {
+		return "", errors.New("picpay credentials not configured")
 	}
 
-	url := fmt.Sprintf("%s/%s/status", picpayBaseURL, referenceID)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	token, err := p.getAccessToken(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	statusURL := fmt.Sprintf("%s/%s", picpayStatusURL, referenceID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, statusURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("picpay: build status request: %w", err)
 	}
-	req.Header.Set("x-picpay-token", p.token)
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	resp, err := p.client.Do(req)
 	if err != nil {
@@ -165,12 +216,7 @@ func (p *PicPayProvider) GetOrderStatus(ctx context.Context, referenceID string)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		var apiErr picpayErrorResponse
-		_ = json.Unmarshal(responseBytes, &apiErr)
-		if apiErr.Message != "" {
-			return "", fmt.Errorf("picpay: %s", apiErr.Message)
-		}
-		return "", fmt.Errorf("picpay: unexpected status %d", resp.StatusCode)
+		return "", fmt.Errorf("picpay: unexpected status %d: %s", resp.StatusCode, string(responseBytes))
 	}
 
 	var result picpayStatusResponse
@@ -194,13 +240,13 @@ func centsToFloat(cents int64) float64 {
 
 func mapPicPayStatus(s string) domain.OrderStatus {
 	switch s {
-	case "paid", "completed":
+	case "PAID", "paid", "completed", "COMPLETED":
 		return domain.StatusPaid
-	case "expired":
+	case "EXPIRED", "expired":
 		return domain.StatusExpired
-	case "cancelled", "refunded":
+	case "CANCELLED", "cancelled", "refunded", "REFUNDED":
 		return domain.StatusCancelled
-	case "chargeback":
+	case "CHARGEBACK", "chargeback":
 		return domain.StatusChargeback
 	default:
 		return domain.StatusPending
