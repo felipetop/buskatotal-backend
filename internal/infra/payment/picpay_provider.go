@@ -19,7 +19,7 @@ import (
 const (
 	picpayOAuthURL  = "https://api.picpay.com/oauth2/token"
 	picpayCreateURL = "https://api.picpay.com/v1/paymentlink/create"
-	picpayStatusURL = "https://api.picpay.com/v1/paymentlink/%s"
+	picpayStatusURL = "https://api.picpay.com/v1/paymentlink/%s/transactions"
 )
 
 // PicPayProvider implements domain.Provider using the PicPay E-commerce V2 API.
@@ -137,8 +137,6 @@ type picpayCreateResponse struct {
 }
 
 type picpayStatusResponse struct {
-	Status string `json:"status"`
-	// transactions is a list of payments made against the link
 	Transactions []struct {
 		Status string `json:"status"`
 	} `json:"transactions"`
@@ -271,16 +269,23 @@ func (p *PicPayProvider) GetOrderStatus(ctx context.Context, referenceID string)
 		return "", fmt.Errorf("picpay: decode status response: %w", err)
 	}
 
-	log.Printf("picpay: status response for %s: %s", referenceID, string(responseBytes))
-
-	// If there are transactions, use the status of the most recent one
+	// Use the status of the most recent transaction (first in list).
+	// If any transaction is PAYED, order is paid.
 	for _, t := range result.Transactions {
-		if t.Status != "" {
-			return mapPicPayStatus(t.Status), nil
+		if strings.ToUpper(t.Status) == "PAYED" {
+			log.Printf("picpay: order %s is PAYED", referenceID)
+			return domain.StatusPaid, nil
 		}
 	}
 
-	return mapPicPayStatus(result.Status), nil
+	if len(result.Transactions) > 0 {
+		status := result.Transactions[0].Status
+		log.Printf("picpay: order %s status: %s", referenceID, status)
+		return mapPicPayStatus(status), nil
+	}
+
+	log.Printf("picpay: order %s has no transactions yet", referenceID)
+	return domain.StatusPending, nil
 }
 
 // Credit is not applicable to PicPay (async flow only).
