@@ -18,16 +18,16 @@ const (
 
 // Order is the aggregate root for a payment transaction.
 type Order struct {
-	ID           string
-	UserID       string
-	ReferenceID  string      // unique ID sent to PicPay
-	AmountCents  int64       // amount in cents (e.g. 1050 = R$ 10,50)
-	Status       OrderStatus
-	PaymentURL   string // PicPay checkout URL
-	QRCodeText   string // PIX copia-e-cola
-	QRCodeBase64 string // PIX QR code image
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID           string      `json:"order_id" firestore:"ID"`
+	UserID       string      `json:"user_id" firestore:"UserID"`
+	ReferenceID  string      `json:"reference_id" firestore:"ReferenceID"`
+	AmountCents  int64       `json:"amount_cents" firestore:"AmountCents"`
+	Status       OrderStatus `json:"status" firestore:"Status"`
+	PaymentURL   string      `json:"payment_url" firestore:"PaymentURL"`
+	QRCodeText   string      `json:"qrcode_text" firestore:"QRCodeText"`
+	QRCodeBase64 string      `json:"qrcode_base64" firestore:"QRCodeBase64"`
+	CreatedAt    time.Time   `json:"created_at" firestore:"CreatedAt"`
+	UpdatedAt    time.Time   `json:"updated_at" firestore:"UpdatedAt"`
 }
 
 // Buyer holds the buyer data required by PicPay.
