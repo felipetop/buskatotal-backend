@@ -137,6 +137,20 @@ func (s *PaymentService) ProcessWebhook(ctx context.Context, referenceID string)
 	return nil
 }
 
+// ReconcileOrders checks all pending orders against PicPay and credits any that are paid.
+// Should be called by a background goroutine periodically.
+func (s *PaymentService) ReconcileOrders(ctx context.Context) {
+	orders, err := s.orderRepo.GetPendingOrders(ctx)
+	if err != nil {
+		return
+	}
+	for _, order := range orders {
+		if err := s.ProcessWebhook(ctx, order.ReferenceID); err != nil {
+			continue
+		}
+	}
+}
+
 // ListOrders returns all orders for a user.
 func (s *PaymentService) ListOrders(ctx context.Context, userID string) ([]payment.Order, error) {
 	if userID == "" {

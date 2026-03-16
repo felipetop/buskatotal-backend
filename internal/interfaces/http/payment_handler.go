@@ -130,13 +130,19 @@ func (h *PaymentHandler) CreateOrder(c *gin.Context) {
 }
 
 // ── POST /payments/webhook ────────────────────────────────────────────────────
-// Receives the PicPay callback. PicPay sends:
-//   { "referenceId": "...", "authorizationId": "..." }
-// We re-query PicPay to confirm the status (never trust the payload alone).
+// Receives the PicPay paymentlink callback.
+// PicPay sends: { "type": "PAYMENT", "data": { "transaction": {...}, "charge": { "paymentLinkId": "..." } } }
 
 type picpayWebhookInput struct {
-	ReferenceID     string `json:"referenceId"`
-	AuthorizationID string `json:"authorizationId"`
+	Type string `json:"type"`
+	Data struct {
+		Transaction struct {
+			Status string `json:"status"`
+		} `json:"transaction"`
+		Charge struct {
+			PaymentLinkID string `json:"paymentLinkId"`
+		} `json:"charge"`
+	} `json:"data"`
 }
 
 func (h *PaymentHandler) Webhook(c *gin.Context) {
@@ -146,13 +152,33 @@ func (h *PaymentHandler) Webhook(c *gin.Context) {
 		return
 	}
 
-	if input.ReferenceID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "referenceId is required"})
+	paymentLinkID := input.Data.Charge.PaymentLinkID
+	if paymentLinkID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "paymentLinkId is required"})
 		return
 	}
 
-	if err := h.service.ProcessWebhook(c.Request.Context(), input.ReferenceID); err != nil {
+	if err := h.service.ProcessWebhook(c.Request.Context(), paymentLinkID); err != nil {
 		// Return 200 to avoid PicPay retries for unknown orders; log the error internally.
+		c.JSON(http.StatusOK, gin.H{"ok": false, "error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// ── POST /payments/orders/:reference_id/sync ─────────────────────────────────
+// Queries PicPay for the current status of an order and updates the DB.
+// Called by the frontend while polling for payment confirmation.
+
+func (h *PaymentHandler) SyncOrder(c *gin.Context) {
+	referenceID := c.Param("reference_id")
+	if referenceID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "reference_id is required"})
+		return
+	}
+
+	if err := h.service.ProcessWebhook(c.Request.Context(), referenceID); err != nil {
 		c.JSON(http.StatusOK, gin.H{"ok": false, "error": err.Error()})
 		return
 	}

@@ -40,11 +40,13 @@ func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, authHandler *A
                 protected.POST("/users/:id/credit", paymentHandler.Credit)
                 protected.POST("/users/:id/orders", paymentHandler.CreateOrder)
                 protected.GET("/users/:id/orders", paymentHandler.ListOrders)
+                protected.POST("/orders/:reference_id/sync", paymentHandler.SyncOrder)
             }
         } else {
             payments.POST("/users/:id/credit", paymentHandler.Credit)
             payments.POST("/users/:id/orders", paymentHandler.CreateOrder)
             payments.GET("/users/:id/orders", paymentHandler.ListOrders)
+            payments.POST("/orders/:reference_id/sync", paymentHandler.SyncOrder)
         }
     }
 

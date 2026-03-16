@@ -104,12 +104,13 @@ type picpayCreateRequest struct {
 }
 
 type picpayCharge struct {
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	OrderNumber string            `json:"order_number"`
-	RedirectURL string            `json:"redirect_url,omitempty"`
-	Payment     picpayPayment     `json:"payment"`
-	Amounts     picpayAmounts     `json:"amounts"`
+	Name            string        `json:"name"`
+	Description     string        `json:"description"`
+	OrderNumber     string        `json:"order_number"`
+	RedirectURL     string        `json:"redirect_url,omitempty"`
+	NotificationURL string        `json:"notification_url,omitempty"`
+	Payment         picpayPayment `json:"payment"`
+	Amounts         picpayAmounts `json:"amounts"`
 }
 
 type picpayPayment struct {
@@ -160,10 +161,11 @@ func (p *PicPayProvider) CreateOrder(ctx context.Context, input domain.CreateOrd
 
 	body := picpayCreateRequest{
 		Charge: picpayCharge{
-			Name:        input.Buyer.FirstName + " " + input.Buyer.LastName,
-			Description: "Pedido " + input.ReferenceID,
-			OrderNumber: orderNumber,
-			RedirectURL: input.ReturnURL,
+			Name:            input.Buyer.FirstName + " " + input.Buyer.LastName,
+			Description:     "Pedido " + input.ReferenceID,
+			OrderNumber:     orderNumber,
+			RedirectURL:     input.ReturnURL,
+			NotificationURL: input.CallbackURL,
 			Payment: picpayPayment{
 				Methods:            []string{"BRCODE"},
 				BrcodeArrangements: []string{"PICPAY", "PIX"},
@@ -213,8 +215,15 @@ func (p *PicPayProvider) CreateOrder(ctx context.Context, input domain.CreateOrd
 
 	expires, _ := time.Parse("2006-01-02T15:04:05.000000Z", result.ExpirationDate)
 
+	// paymentLinkId is the last path segment of the link URL.
+	// The webhook identifies payments by this ID, so we use it as ReferenceID.
+	paymentLinkID := result.Link
+	if idx := strings.LastIndex(result.Link, "/"); idx >= 0 {
+		paymentLinkID = result.Link[idx+1:]
+	}
+
 	return domain.OrderResult{
-		ReferenceID: result.TxID,
+		ReferenceID: paymentLinkID,
 		PaymentURL:  result.Link,
 		QRCodeText:  result.BRCode,
 		ExpiresAt:   expires,
@@ -269,14 +278,14 @@ func (p *PicPayProvider) Credit(_ context.Context, _ string, _ int64) (domain.Re
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 func mapPicPayStatus(s string) domain.OrderStatus {
-	switch s {
-	case "paid", "completed":
+	switch strings.ToUpper(s) {
+	case "PAYED", "PAID", "COMPLETED":
 		return domain.StatusPaid
-	case "expired":
+	case "EXPIRED":
 		return domain.StatusExpired
-	case "cancelled", "refunded":
+	case "REFUNDED", "PARTREFUNDED", "CANCELLED":
 		return domain.StatusCancelled
-	case "chargeback":
+	case "CHARGEBACK":
 		return domain.StatusChargeback
 	default:
 		return domain.StatusPending

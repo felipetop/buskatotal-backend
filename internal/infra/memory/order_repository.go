@@ -67,6 +67,19 @@ func (r *OrderRepository) GetByUserID(ctx context.Context, userID string) ([]pay
 	return result, nil
 }
 
+func (r *OrderRepository) GetPendingOrders(ctx context.Context) ([]payment.Order, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var result []payment.Order
+	for _, o := range r.orders {
+		if o.Status == payment.StatusPending {
+			result = append(result, o)
+		}
+	}
+	return result, nil
+}
+
 func (r *OrderRepository) Update(ctx context.Context, order payment.Order) (payment.Order, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

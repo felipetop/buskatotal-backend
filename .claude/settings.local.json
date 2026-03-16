@@ -8,7 +8,11 @@
       "WebFetch(domain:picpay.github.io)",
       "WebFetch(domain:ecommerce.picpay.com)",
       "WebFetch(domain:api.picpay.com)",
-      "WebFetch(domain:api.ms.qa.limbo.work)"
+      "WebFetch(domain:api.ms.qa.limbo.work)",
+      "Read(//c/Users/Dell/Desktop/buska-total/buska-total-html/src/app/pages/pagamentos/**)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\Dell\\Desktop\\buska-total\\buska-total-html\\src\\app\\pages\\pagamentos"
     ]
   }
 }

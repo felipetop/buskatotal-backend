@@ -1,7 +1,9 @@
 package app
 
 import (
+    "context"
     "fmt"
+    "log"
     "net/http"
     "time"
 
@@ -77,7 +79,7 @@ func Run() error {
         defer client.Close()
 
         userRepo := firestore.NewUserRepository(client)
-        orderRepo := memory.NewOrderRepository() // TODO: replace with FirestoreOrderRepository when ready
+        orderRepo := firestore.NewOrderRepository(client)
         userService := NewUserService(userRepo)
         authService := NewAuthService(userRepo, cfg.AuthJWTSecret, 24*time.Hour)
         infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
@@ -86,6 +88,8 @@ func Run() error {
         paymentService := NewPaymentService(paymentProvider, orderRepo, userRepo, cfg.AppBaseURL)
         paymentHandler := httpinterfaces.NewPaymentHandler(paymentService)
 
+        go startReconciliationWorker(paymentService)
+
         userHandler := httpinterfaces.NewUserHandler(userService)
         authHandler := httpinterfaces.NewAuthHandler(authService)
         httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware)
@@ -93,4 +97,13 @@ func Run() error {
 
     addr := fmt.Sprintf(":%s", cfg.Port)
     return router.Run(addr)
+}
+
+func startReconciliationWorker(svc *PaymentService) {
+    ticker := time.NewTicker(10 * time.Second)
+    defer ticker.Stop()
+    for range ticker.C {
+        log.Println("reconciliation: checking pending orders...")
+        svc.ReconcileOrders(context.Background())
+    }
 }
