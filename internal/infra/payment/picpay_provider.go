@@ -18,8 +18,8 @@ import (
 
 const (
 	picpayOAuthURL  = "https://api.picpay.com/oauth2/token"
-	picpayLinkURL   = "https://api.picpay.com/paymentlink/create"
-	picpayStatusURL = "https://api.picpay.com/paymentlink"
+	picpayLinkURL   = "https://api.picpay.com/v1/paymentlink/create"
+	picpayStatusURL = "https://api.picpay.com/v1/paymentlink"
 )
 
 // PicPayProvider implements domain.Provider using the PicPay Link de Pagamento API.
