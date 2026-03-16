@@ -150,13 +150,18 @@ func (p *PicPayProvider) CreateOrder(ctx context.Context, input domain.CreateOrd
 		return domain.OrderResult{}, err
 	}
 
-	expiresAt := time.Now().Add(30 * time.Minute).Format("2006-01-02")
+	expiresAt := time.Now().AddDate(0, 0, 1).Format("2006-01-02")
+
+	orderNumber := input.ReferenceID
+	if len(orderNumber) > 15 {
+		orderNumber = orderNumber[:15]
+	}
 
 	body := picpayCreateRequest{
 		Charge: picpayCharge{
 			Name:        input.Buyer.FirstName + " " + input.Buyer.LastName,
 			Description: "Pedido " + input.ReferenceID,
-			OrderNumber: input.ReferenceID,
+			OrderNumber: orderNumber,
 			RedirectURL: input.ReturnURL,
 			Payment: picpayPayment{
 				Methods:            []string{"BRCODE"},
