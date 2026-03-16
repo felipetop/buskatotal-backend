@@ -61,7 +61,7 @@ func (s *PaymentService) CreateOrder(
 		return payment.Order{}, errors.New("user not found")
 	}
 
-	referenceID := fmt.Sprintf("buskatotal-%s-%d", userID[:8], time.Now().UnixNano())
+	referenceID := fmt.Sprintf("%s%d", userID[:8], time.Now().Unix()%10000000)
 	callbackURL := fmt.Sprintf("%s/payments/webhook", s.baseURL)
 
 	result, err := s.provider.CreateOrder(ctx, payment.CreateOrderInput{
