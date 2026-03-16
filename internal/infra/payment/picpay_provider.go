@@ -18,11 +18,11 @@ import (
 
 const (
 	picpayOAuthURL  = "https://api.picpay.com/oauth2/token"
-	picpayLinkURL   = "https://api.picpay.com/v1/paymentlink/create"
-	picpayStatusURL = "https://api.picpay.com/v1/paymentlink"
+	picpayCreateURL = "https://api.picpay.com/ecommerce/v2/payments"
+	picpayStatusURL = "https://api.picpay.com/ecommerce/v2/payments/%s/status"
 )
 
-// PicPayProvider implements domain.Provider using the PicPay Link de Pagamento API.
+// PicPayProvider implements domain.Provider using the PicPay E-commerce V2 API.
 type PicPayProvider struct {
 	clientID     string
 	clientSecret string
@@ -55,6 +55,7 @@ func (p *PicPayProvider) getAccessToken(ctx context.Context) (string, error) {
 	data.Set("grant_type", "client_credentials")
 	data.Set("client_id", p.clientID)
 	data.Set("client_secret", p.clientSecret)
+	data.Set("scope", "ecommerce")
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, picpayOAuthURL, strings.NewReader(data.Encode()))
 	if err != nil {
@@ -93,48 +94,37 @@ func (p *PicPayProvider) getAccessToken(ctx context.Context) (string, error) {
 
 // ── PicPay request / response types ──────────────────────────────────────────
 
-type picpayLinkPayment struct {
-	Methods            []string `json:"methods"`
-	BrcodeArrangements []string `json:"brcode_arrangements,omitempty"`
+type picpayBuyer struct {
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Document  string `json:"document"`
+	Email     string `json:"email"`
+	Phone     string `json:"phone,omitempty"`
 }
 
-type picpayLinkAmounts struct {
-	Product int64 `json:"product"`
+type picpayCreateRequest struct {
+	ReferenceID string      `json:"referenceId"`
+	CallbackURL string      `json:"callbackUrl"`
+	ReturnURL   string      `json:"returnUrl,omitempty"`
+	Value       float64     `json:"value"`
+	ExpiresAt   string      `json:"expiresAt"`
+	Buyer       picpayBuyer `json:"buyer"`
 }
 
-type picpayLinkCharge struct {
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	OrderNumber string            `json:"order_number"`
-	RedirectURL string            `json:"redirect_url,omitempty"`
-	Payment     picpayLinkPayment `json:"payment"`
-	Amounts     picpayLinkAmounts `json:"amounts"`
-}
-
-type picpayLinkOptions struct {
-	AllowCreatePixKey        bool   `json:"allow_create_pix_key"`
-	CardMaxInstallmentNumber int    `json:"card_max_installment_number,omitempty"`
-	ExpiredAt                string `json:"expired_at"`
-}
-
-type picpayLinkRequest struct {
-	Charge  picpayLinkCharge  `json:"charge"`
-	Options picpayLinkOptions `json:"options"`
-}
-
-type picpayLinkResponse struct {
-	Link        string `json:"link"`
-	Deeplink    string `json:"deeplink"`
-	BRCode      string `json:"brcode"`
-	QRCode      string `json:"qrCode"`
-	TxID        string `json:"txid"`
-	OrderNumber string `json:"orderNumber"`
-	Status      string `json:"status"`
+type picpayCreateResponse struct {
+	ReferenceID string `json:"referenceId"`
+	PaymentURL  string `json:"paymentUrl"`
+	ExpiresAt   string `json:"expiresAt"`
+	QRCode      struct {
+		Content string `json:"content"`
+		Base64  string `json:"base64"`
+	} `json:"qrcode"`
 }
 
 type picpayStatusResponse struct {
-	OrderNumber string `json:"orderNumber"`
-	Status      string `json:"status"`
+	ReferenceID     string `json:"referenceId"`
+	AuthorizationID string `json:"authorizationId"`
+	Status          string `json:"status"`
 }
 
 // ── Provider interface implementation ────────────────────────────────────────
@@ -151,28 +141,18 @@ func (p *PicPayProvider) CreateOrder(ctx context.Context, input domain.CreateOrd
 
 	expiresAt := time.Now().Add(30 * time.Minute).Format(time.RFC3339)
 
-	expiredAt := time.Now().Add(24 * time.Hour).Format("2006-01-02")
-	orderNumber := input.ReferenceID
-	if len(orderNumber) > 15 {
-		orderNumber = orderNumber[:15]
-	}
-
-	body := picpayLinkRequest{
-		Charge: picpayLinkCharge{
-			Name:        "Depósito BuskaTotal",
-			Description: fmt.Sprintf("Depósito de R$ %.2f", centsToFloat(input.AmountCents)),
-			OrderNumber: orderNumber,
-			RedirectURL: input.ReturnURL,
-			Payment: picpayLinkPayment{
-				Methods:            []string{"BRCODE", "CREDIT_CARD"},
-				BrcodeArrangements: []string{"PICPAY", "PIX"},
-			},
-			Amounts: picpayLinkAmounts{Product: input.AmountCents},
-		},
-		Options: picpayLinkOptions{
-			AllowCreatePixKey:        true,
-			CardMaxInstallmentNumber: 1,
-			ExpiredAt:                expiredAt,
+	body := picpayCreateRequest{
+		ReferenceID: input.ReferenceID,
+		CallbackURL: input.CallbackURL,
+		ReturnURL:   input.ReturnURL,
+		Value:       centsToFloat(input.AmountCents),
+		ExpiresAt:   expiresAt,
+		Buyer: picpayBuyer{
+			FirstName: input.Buyer.FirstName,
+			LastName:  input.Buyer.LastName,
+			Document:  input.Buyer.Document,
+			Email:     input.Buyer.Email,
+			Phone:     input.Buyer.Phone,
 		},
 	}
 
@@ -181,7 +161,7 @@ func (p *PicPayProvider) CreateOrder(ctx context.Context, input domain.CreateOrd
 		return domain.OrderResult{}, fmt.Errorf("picpay: marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, picpayLinkURL, bytes.NewReader(raw))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, picpayCreateURL, bytes.NewReader(raw))
 	if err != nil {
 		return domain.OrderResult{}, fmt.Errorf("picpay: build request: %w", err)
 	}
@@ -203,18 +183,18 @@ func (p *PicPayProvider) CreateOrder(ctx context.Context, input domain.CreateOrd
 		return domain.OrderResult{}, fmt.Errorf("picpay: unexpected status %d: %s", resp.StatusCode, string(responseBytes))
 	}
 
-	var result picpayLinkResponse
+	var result picpayCreateResponse
 	if err := json.Unmarshal(responseBytes, &result); err != nil {
 		return domain.OrderResult{}, fmt.Errorf("picpay: decode response: %w", err)
 	}
 
-	expires, _ := time.Parse(time.RFC3339, expiresAt)
+	expires, _ := time.Parse(time.RFC3339, result.ExpiresAt)
 
 	return domain.OrderResult{
-		ReferenceID:  input.ReferenceID,
-		PaymentURL:   result.Link,
-		QRCodeText:   result.BRCode,
-		QRCodeBase64: result.QRCode,
+		ReferenceID:  result.ReferenceID,
+		PaymentURL:   result.PaymentURL,
+		QRCodeText:   result.QRCode.Content,
+		QRCodeBase64: result.QRCode.Base64,
 		ExpiresAt:    expires,
 	}, nil
 }
@@ -224,17 +204,17 @@ func (p *PicPayProvider) GetOrderStatus(ctx context.Context, referenceID string)
 		return "", errors.New("picpay credentials not configured")
 	}
 
-	token, err := p.getAccessToken(ctx)
+	statusToken, err := p.getAccessToken(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	statusURL := fmt.Sprintf("%s/%s", picpayStatusURL, referenceID)
+	statusURL := fmt.Sprintf(picpayStatusURL, referenceID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, statusURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("picpay: build status request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Authorization", "Bearer "+statusToken)
 
 	resp, err := p.client.Do(req)
 	if err != nil {
@@ -272,13 +252,13 @@ func centsToFloat(cents int64) float64 {
 
 func mapPicPayStatus(s string) domain.OrderStatus {
 	switch s {
-	case "PAID", "paid", "completed", "COMPLETED":
+	case "paid", "completed":
 		return domain.StatusPaid
-	case "EXPIRED", "expired":
+	case "expired":
 		return domain.StatusExpired
-	case "CANCELLED", "cancelled", "refunded", "REFUNDED":
+	case "cancelled", "refunded":
 		return domain.StatusCancelled
-	case "CHARGEBACK", "chargeback":
+	case "chargeback":
 		return domain.StatusChargeback
 	default:
 		return domain.StatusPending
