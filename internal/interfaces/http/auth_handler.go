@@ -41,6 +41,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
         return
     }
 
+    c.Header("Cache-Control", "no-store")
     c.JSON(http.StatusCreated, gin.H{
         "user":  userItem,
         "token": token,
@@ -60,6 +61,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
         return
     }
 
+    c.Header("Cache-Control", "no-store")
     c.JSON(http.StatusOK, gin.H{
         "user":  userItem,
         "token": token,
