@@ -93,15 +93,33 @@ func (p *PicPayProvider) getAccessToken(ctx context.Context) (string, error) {
 
 // ── PicPay request / response types ──────────────────────────────────────────
 
+type picpayLinkPayment struct {
+	Methods            []string `json:"methods"`
+	BrcodeArrangements []string `json:"brcode_arrangements,omitempty"`
+}
+
+type picpayLinkAmounts struct {
+	Product int64 `json:"product"`
+}
+
+type picpayLinkCharge struct {
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	OrderNumber string            `json:"order_number"`
+	RedirectURL string            `json:"redirect_url,omitempty"`
+	Payment     picpayLinkPayment `json:"payment"`
+	Amounts     picpayLinkAmounts `json:"amounts"`
+}
+
+type picpayLinkOptions struct {
+	AllowCreatePixKey        bool   `json:"allow_create_pix_key"`
+	CardMaxInstallmentNumber int    `json:"card_max_installment_number,omitempty"`
+	ExpiredAt                string `json:"expired_at"`
+}
+
 type picpayLinkRequest struct {
-	Name                 string   `json:"name"`
-	Description          string   `json:"description"`
-	Amount               int64    `json:"amount"` // cents
-	PaymentMethods       []string `json:"paymentMethods"`
-	OrderNumber          string   `json:"orderNumber"`
-	RedirectURL          string   `json:"redirectUrl,omitempty"`
-	ExpirationDate       string   `json:"expirationDate"`
-	MaxInstallmentNumber int      `json:"maxInstallmentNumber"`
+	Charge  picpayLinkCharge  `json:"charge"`
+	Options picpayLinkOptions `json:"options"`
 }
 
 type picpayLinkResponse struct {
@@ -133,15 +151,29 @@ func (p *PicPayProvider) CreateOrder(ctx context.Context, input domain.CreateOrd
 
 	expiresAt := time.Now().Add(30 * time.Minute).Format(time.RFC3339)
 
+	expiredAt := time.Now().Add(24 * time.Hour).Format("2006-01-02")
+	orderNumber := input.ReferenceID
+	if len(orderNumber) > 15 {
+		orderNumber = orderNumber[:15]
+	}
+
 	body := picpayLinkRequest{
-		Name:                 "Depósito BuskaTotal",
-		Description:          fmt.Sprintf("Depósito de R$ %.2f", centsToFloat(input.AmountCents)),
-		Amount:               input.AmountCents,
-		PaymentMethods:       []string{"CREDIT_CARD", "PIX"},
-		OrderNumber:          input.ReferenceID,
-		RedirectURL:          input.ReturnURL,
-		ExpirationDate:       expiresAt,
-		MaxInstallmentNumber: 1,
+		Charge: picpayLinkCharge{
+			Name:        "Depósito BuskaTotal",
+			Description: fmt.Sprintf("Depósito de R$ %.2f", centsToFloat(input.AmountCents)),
+			OrderNumber: orderNumber,
+			RedirectURL: input.ReturnURL,
+			Payment: picpayLinkPayment{
+				Methods:            []string{"BRCODE", "CREDIT_CARD"},
+				BrcodeArrangements: []string{"PICPAY", "PIX"},
+			},
+			Amounts: picpayLinkAmounts{Product: input.AmountCents},
+		},
+		Options: picpayLinkOptions{
+			AllowCreatePixKey:        true,
+			CardMaxInstallmentNumber: 1,
+			ExpiredAt:                expiredAt,
+		},
 	}
 
 	raw, err := json.Marshal(body)

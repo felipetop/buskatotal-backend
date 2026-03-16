@@ -6,7 +6,9 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:docs.smartfastpay.com)",
       "WebFetch(domain:picpay.github.io)",
-      "WebFetch(domain:ecommerce.picpay.com)"
+      "WebFetch(domain:ecommerce.picpay.com)",
+      "WebFetch(domain:api.picpay.com)",
+      "WebFetch(domain:api.ms.qa.limbo.work)"
     ]
   }
 }
