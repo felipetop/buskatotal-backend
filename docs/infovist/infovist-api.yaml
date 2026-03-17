@@ -1,0 +1,1370 @@
+openapi: 3.0.3
+info:
+  title: Infovist Integration API
+  description: API de integração com a plataforma Infovist para vistorias veiculares digitais.
+  version: 2.0.0
+
+servers:
+  - url: https://api.infovist.com.br/api/v1
+    description: Producao v1
+  - url: https://api.infovist.com.br/api/v2
+    description: Producao v2
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    AuthRequest:
+      type: object
+      required:
+        - email
+        - password
+        - api_token
+      properties:
+        email:
+          type: string
+          maxLength: 100
+          example: exemplo@example.com
+        password:
+          type: string
+          minLength: 8
+          maxLength: 16
+          example: "12345678910!@#"
+        api_token:
+          type: string
+          maxLength: 14
+          example: A12BCDfGhIjk34
+
+    AuthResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          example: bearer
+        expires_in:
+          type: integer
+        created_at:
+          type: integer
+
+    CreateInspectionRequest:
+      type: object
+      required:
+        - customer
+        - cellphone
+      properties:
+        customer:
+          type: string
+          maxLength: 100
+          example: John Doe
+        cellphone:
+          type: string
+          minLength: 10
+          maxLength: 11
+          example: "11999999999"
+        plate:
+          type: string
+          minLength: 7
+          maxLength: 7
+          example: AAA1234
+          description: Obrigatorio quando chassi nao esta presente.
+        chassis:
+          type: string
+          maxLength: 17
+          example: ABBCA11A23C018702
+          description: Obrigatorio quando placa nao esta presente.
+        notes:
+          type: string
+          maxLength: 255
+          example: Vistoria relacionada a placa AAA1234
+        cpf:
+          type: string
+          minLength: 11
+          maxLength: 11
+          description: Opcional. Apenas para clientes com modulo de Validacao de Identidade ativo.
+        can_notify:
+          type: boolean
+          default: true
+          description: Envie false caso nao queira que o numero do cliente seja notificado por Whatsapp/SMS.
+        applet_profile_id:
+          type: string
+          format: uuid
+          description: Opcional. Envie caso a vistoria precise ser criada para um perfil especifico.
+
+    CreateInspectionResponse:
+      type: object
+      properties:
+        protocol:
+          type: string
+          example: 18de85c0
+
+    InspectionStatus:
+      type: object
+      properties:
+        value:
+          type: string
+          example: Aguardando Envio
+        status_enum:
+          type: string
+          example: AWAITING_TO_SEND
+        created_at:
+          type: string
+          format: date-time
+          example: "2020-01-01 00:00:01"
+
+    ViewInspectionResponse:
+      type: object
+      properties:
+        protocol:
+          type: string
+          example: 18de85c0
+        statuses:
+          type: array
+          items:
+            $ref: "#/components/schemas/InspectionStatus"
+
+    InspectionListItem:
+      type: object
+      properties:
+        customer:
+          type: string
+          example: Jhon Doe
+        plate:
+          type: string
+          example: AAA1234
+        normal_plate:
+          type: string
+          example: AAA1234
+        mercosur_plate:
+          type: string
+          example: AAA1234
+        chassis:
+          type: string
+          nullable: true
+        status:
+          type: string
+        protocol:
+          type: string
+          example: Up8cXPTxQ
+
+    PaginationLinks:
+      type: object
+      properties:
+        first:
+          type: string
+          nullable: true
+        last:
+          type: string
+          nullable: true
+        prev:
+          type: string
+          nullable: true
+        next:
+          type: string
+          nullable: true
+
+    PaginationMeta:
+      type: object
+      properties:
+        current_page:
+          type: integer
+        from:
+          type: integer
+        path:
+          type: string
+        per_page:
+          type: integer
+        to:
+          type: integer
+
+    ListInspectionsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/InspectionListItem"
+        links:
+          $ref: "#/components/schemas/PaginationLinks"
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    CancelInspectionRequest:
+      type: object
+      required:
+        - protocol
+        - justification
+      properties:
+        protocol:
+          type: string
+          minLength: 8
+          maxLength: 8
+        justification:
+          type: string
+          maxLength: 255
+
+    CloseRecaptureRequest:
+      type: object
+      required:
+        - protocol
+      properties:
+        protocol:
+          type: string
+          minLength: 8
+          maxLength: 8
+
+    AppletProfile:
+      type: object
+      properties:
+        profile_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+
+    ChangeAssessmentStatusRequest:
+      type: object
+      required:
+        - protocol
+        - status
+      properties:
+        protocol:
+          type: string
+          minLength: 8
+          maxLength: 8
+        status:
+          type: string
+          enum:
+            - Aprovado
+            - Aprovado com ressalvas
+            - Reprovado
+
+    RetriageRequest:
+      type: object
+      required:
+        - inspection_protocol
+        - inspection_event_ids
+      properties:
+        inspection_protocol:
+          type: string
+          minLength: 8
+          maxLength: 8
+        notes_to_retry:
+          type: string
+          maxLength: 255
+          description: Descreva opcionalmente o motivo da retriagem ou uma instrucao. Esse texto sera enviado para o usuario junto com o link da vistoria.
+        inspection_event_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    IaDamageElement:
+      type: object
+      properties:
+        bbox:
+          type: array
+          items:
+            type: integer
+          example: [637, 892, 785, 926]
+        score:
+          type: number
+          format: float
+          example: 0.540672
+        damage_id:
+          type: string
+        damage_color:
+          type: array
+          items:
+            type: integer
+          example: [50, 50, 100]
+        damage_category:
+          type: string
+          example: Pequenos arranhoes na pintura
+        damage_location:
+          type: string
+          example: para-choque traseiro
+
+    IaFlow:
+      type: object
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        output_url:
+          type: string
+        url_expiry:
+          type: string
+        draw_result:
+          type: boolean
+        output:
+          type: object
+          properties:
+            elements:
+              type: array
+              items:
+                $ref: "#/components/schemas/IaDamageElement"
+            object_id:
+              type: string
+              nullable: true
+
+    InspectionCapture:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        step:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        image:
+          type: string
+        is_validatable:
+          type: boolean
+        is_validated:
+          type: boolean
+        latitude:
+          type: string
+        longitude:
+          type: string
+        location_address:
+          type: string
+        is_browser_gps:
+          type: boolean
+        score_point:
+          type: integer
+        distance_km:
+          type: string
+        ia:
+          $ref: "#/components/schemas/IaFlow"
+
+    PaintingCheckStep:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        applet_subgroup_id:
+          type: string
+          format: uuid
+        applet_subgroup_name:
+          type: string
+        applet_subgroup_type_name:
+          type: string
+        painting_check_id:
+          type: string
+          format: uuid
+        range_color:
+          type: object
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    PricingDecoderResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        fipe:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+              value:
+                type: string
+              brand_model:
+                type: string
+              price_history:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    month:
+                      type: string
+                    value:
+                      type: string
+        molicar:
+          type: array
+          items:
+            type: object
+            properties:
+              code:
+                type: string
+              value:
+                type: string
+              description:
+                type: string
+        vehicle:
+          type: object
+          properties:
+            chassis:
+              type: string
+            plate:
+              type: string
+            mercosul_plate:
+              type: string
+            brand:
+              type: string
+            model:
+              type: string
+            year_manufacture:
+              type: string
+            year_model:
+              type: string
+            fuel:
+              type: string
+            color:
+              type: string
+            vehicle_type:
+              type: string
+            body_type:
+              type: string
+            power:
+              type: string
+            motor_number:
+              type: string
+            uf:
+              type: string
+            rescheduled_chassis:
+              type: string
+            last_occurrence_restriction:
+              type: array
+              items:
+                type: string
+
+    ApisResult:
+      type: object
+      properties:
+        ia_resume:
+          type: object
+          nullable: true
+          properties:
+            damage_value:
+              type: number
+            general_valid:
+              type: string
+            is_plate_valid:
+              type: string
+            is_damage_valid:
+              type: string
+        commercial_risk_result:
+          type: object
+          nullable: true
+        pricing_decoder_result:
+          $ref: "#/components/schemas/PricingDecoderResult"
+        consult_history_result:
+          type: object
+          nullable: true
+        recall_result:
+          type: object
+          nullable: true
+        sinister_result:
+          type: object
+          nullable: true
+        rating_result:
+          type: object
+          nullable: true
+        auction_base_one_result:
+          type: object
+          nullable: true
+        auction_base_two_result:
+          type: object
+          nullable: true
+        fenauto_state_base_result:
+          type: object
+          nullable: true
+        infocar_lien_result:
+          type: object
+          nullable: true
+        fenauto_lien_result:
+          type: object
+          nullable: true
+        infocar_theft_result:
+          type: object
+          nullable: true
+        fenauto_theft_result:
+          type: object
+          nullable: true
+        renajud_result:
+          type: object
+          nullable: true
+        fleet_alert_result:
+          type: object
+          nullable: true
+        public_agency_alert_result:
+          type: object
+          nullable: true
+        remarketing_result:
+          type: object
+          nullable: true
+        renavam_result:
+          type: object
+          nullable: true
+
+    ReportV1Response:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            report_pdf:
+              type: string
+            result:
+              type: object
+              properties:
+                apis:
+                  $ref: "#/components/schemas/ApisResult"
+            inspection_id:
+              type: string
+              nullable: true
+            inspection_event_data:
+              type: array
+              items:
+                type: object
+            inspection_data:
+              type: array
+              items:
+                type: object
+
+    ReportV1WithAiResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            result:
+              type: object
+              properties:
+                apis:
+                  $ref: "#/components/schemas/ApisResult"
+                is_search_applet_installed:
+                  type: boolean
+                is_identity_applet_installed:
+                  type: boolean
+                is_qr_code_applet_installed:
+                  type: boolean
+                is_ia_flow_applet_installed:
+                  type: boolean
+            inspection_id:
+              type: string
+              format: uuid
+            assessment_score_point:
+              type: integer
+            assessment_status:
+              type: string
+            inspection_event_data:
+              type: array
+              items:
+                type: object
+            inspection_data:
+              type: object
+            report_notes:
+              type: string
+              nullable: true
+            assessment_notes:
+              type: string
+            report_pdf:
+              type: string
+            company_data:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                color:
+                  type: string
+                is_dark:
+                  type: boolean
+
+    ReportV2Response:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            inspection_data:
+              type: object
+              properties:
+                plate:
+                  type: string
+                chassis:
+                  type: string
+                plate_or_chassis:
+                  type: string
+                notes:
+                  type: string
+                protocol:
+                  type: string
+                checklist:
+                  type: array
+                  items:
+                    type: object
+                painting_check_steps:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/PaintingCheckStep"
+            inspection_captures:
+              type: array
+              items:
+                $ref: "#/components/schemas/InspectionCapture"
+            apis:
+              $ref: "#/components/schemas/ApisResult"
+            report_notes:
+              type: string
+              nullable: true
+            assessment_score_point:
+              type: integer
+            assessment_status:
+              type: string
+            assessment_status_enum:
+              type: string
+            assessment_notes:
+              type: string
+            report_pdf:
+              type: string
+
+    WebhookInspectionPayload:
+      type: object
+      description: |
+        Payload enviado via POST para o webhook de vistoria.
+        Status possiveis: OPEN, MAKE_REPORT, AWAITING_RECAPTURE.
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: b3e8366d-87f3-4c43-a401-28e49e7f0d4e
+        protocol:
+          type: string
+          example: 18de85c0
+        old_status:
+          type: string
+          example: Aberto
+        old_status_enum:
+          type: string
+          enum:
+            - OPEN
+            - MAKE_REPORT
+            - AWAITING_RECAPTURE
+          example: OPEN
+        current_status:
+          type: string
+          example: Preparando Relatorio
+        current_status_enum:
+          type: string
+          enum:
+            - OPEN
+            - MAKE_REPORT
+            - AWAITING_RECAPTURE
+          example: MAKE_REPORT
+        date:
+          type: string
+          format: date-time
+          example: "2023-10-20 19:10:42"
+
+    WebhookAssessmentPayload:
+      type: object
+      description: |
+        Payload enviado via POST para o webhook de avaliacao.
+        Status possiveis: AWAITING_EVALUATION, ASSESSING, APPROVED, APPROVED_WITH_NOTES, REPROVED.
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 602f6312-5174-449c-b17b-140e5c4005ac
+        protocol:
+          type: string
+          example: 18de85c0
+        old_status:
+          type: string
+          example: Aguardando Avaliacao
+        old_status_enum:
+          type: string
+          enum:
+            - AWAITING_EVAUATION
+            - ASSESSING
+            - APPROVED
+            - APPROVED_WITH_NOTES
+            - REPROVED
+          example: AWAITING_EVAUATION
+        current_status:
+          type: string
+          example: Avaliando
+        current_status_enum:
+          type: string
+          enum:
+            - AWAITING_EVALUATION
+            - ASSESSING
+            - APPROVED
+            - APPROVED_WITH_NOTES
+            - REPROVED
+          example: ASSESSING
+        date:
+          type: string
+          format: date-time
+          example: "2023-10-23 16:22:39"
+
+    WebhookReportPayload:
+      type: object
+      description: |
+        Payload enviado via POST para o webhook de relatorio.
+        Status: CLOSED.
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 5d0211a2-31f4-465c-ac82-cd01245f3c3d
+        protocol:
+          type: string
+          example: 18de85c0
+        date:
+          type: string
+          format: date-time
+          example: "2023-10-23 17:00:33"
+
+    WebhookReportPdfPayload:
+      type: object
+      description: |
+        Payload enviado via POST para o webhook de relatorio PDF.
+        Status: GENERATED.
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 5d0211a2-31f4-465c-ac82-cd01245f3c3d
+        protocol:
+          type: string
+          example: 18de85c0
+        current_status:
+          type: string
+          example: generated
+        current_status_enum:
+          type: string
+          enum:
+            - GENERATED
+          example: GENERATED
+        assessment_status_enum:
+          type: string
+          description: Retornado somente para clientes com modulo de Avaliacao instalado.
+          enum:
+            - APPROVED
+            - APPROVED_WITH_NOTES
+            - REPROVED
+          example: APPROVED_WITH_NOTES
+        vehicle_type:
+          type: string
+          example: Carro
+        report_pdf:
+          type: string
+          format: uri
+          example: "https://CLOUD_FRONT_URL/inspection/5d0211a2-31f4-465c-ac82-cd01245f3c3d/MkGIJ87654.pdf"
+        date:
+          type: string
+          format: date-time
+          example: "2025-02-19 10:14:36"
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        status_code:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        status_code:
+          type: integer
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        status_code:
+          type: integer
+
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Autenticacao
+      summary: Autenticar
+      description: Autenticacao necessaria para integracao com a API.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "422":
+          description: Campos obrigatorios nao preenchidos ou dados invalidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+
+  /inspection:
+    post:
+      tags:
+        - Vistoria
+      summary: Criar vistoria
+      description: Criar nova vistoria via integracao entre APIs.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInspectionRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateInspectionResponse"
+        "422":
+          description: Campos obrigatorios nao preenchidos ou dados invalidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+
+    get:
+      tags:
+        - Vistoria
+      summary: Listar vistorias
+      description: Buscar vistorias via integracao entre APIs usando diversos campos.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          description: Valor que deseja pesquisar (ex. placa). Requer category.
+          schema:
+            type: string
+        - name: category
+          in: query
+          description: "Tipo de filtro. Opcoes: Placa, Chassi, Cliente, Protocolo. Requer search."
+          schema:
+            type: string
+            enum:
+              - Placa
+              - Chassi
+              - Cliente
+              - Protocolo
+        - name: start_date
+          in: query
+          description: "Data inicio (formato: Y-m-d H:i). Limite de 3 meses."
+          schema:
+            type: string
+            format: date-time
+            example: "2023-08-01 15:00"
+        - name: end_date
+          in: query
+          description: "Data fim (formato: Y-m-d H:i)."
+          schema:
+            type: string
+            format: date-time
+            example: "2023-11-01 15:00"
+        - name: limit
+          in: query
+          required: true
+          description: Limite de itens retornados pela paginacao (max 50).
+          schema:
+            type: integer
+            maximum: 50
+        - name: page
+          in: query
+          required: true
+          description: Numero da pagina.
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListInspectionsResponse"
+        "404":
+          description: Recurso nao encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /inspection/{protocol}:
+    get:
+      tags:
+        - Vistoria
+      summary: Visualizar vistoria
+      description: Buscar vistoria por numero do protocolo.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: protocol
+          in: path
+          required: true
+          description: Protocolo da vistoria.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ViewInspectionResponse"
+        "404":
+          description: Recurso nao encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /inspection/cancel:
+    post:
+      tags:
+        - Vistoria
+      summary: Cancelar vistoria
+      description: |
+        Cancela vistoria criada via integracao de API.
+        As vistorias so podem ser canceladas caso o status seja: AGUARDANDO ENVIO, ENVIADO ou ABERTO.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelInspectionRequest"
+      responses:
+        "200":
+          description: Vistoria cancelada com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Vistoria ja esta cancelada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Requisicao nao autorizada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Recurso nao encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Campos obrigatorios nao preenchidos ou dados invalidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+
+  /inspection/cancel-in-progress:
+    post:
+      tags:
+        - Vistoria
+      summary: Cancelar vistoria em andamento
+      description: Cancela vistoria em andamento via integracao de API.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelInspectionRequest"
+      responses:
+        "200":
+          description: Vistoria cancelada com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Vistoria ja esta cancelada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Requisicao nao autorizada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Recurso nao encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Campos obrigatorios nao preenchidos ou dados invalidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+
+  /report/pdf/{protocol}:
+    get:
+      tags:
+        - Relatorio
+      summary: Get Report v1
+      description: Buscar relatorio em formato PDF utilizando protocolo de vistoria finalizada.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: protocol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportV1Response"
+        "404":
+          description: Recurso nao encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # v2 endpoints use /api/v2 base
+  /v2/inspection/close-recapture:
+    post:
+      tags:
+        - Vistoria
+      summary: Finalizar vistoria em retriagem (v2)
+      description: |
+        Forca a finalizacao de vistorias em retriagem.
+        Somente vistorias aguardando nova foto em retriagem podem ser finalizadas manualmente.
+      servers:
+        - url: https://api.infovist.com.br/api
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CloseRecaptureRequest"
+      responses:
+        "200":
+          description: Fechamento manual da vistoria realizado com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Vistoria ja esta finalizada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Requisicao nao autorizada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Recurso nao encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Campos obrigatorios nao preenchidos ou dados invalidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+
+  /v2/applet-profiles:
+    get:
+      tags:
+        - Vistoria
+      summary: Listar perfis de vistorias (v2)
+      description: Buscar perfis de vistorias criados para a empresa do usuario autenticado.
+      servers:
+        - url: https://api.infovist.com.br/api
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AppletProfile"
+        "401":
+          description: Nao autorizado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v2/report/pdf/{protocol}:
+    get:
+      tags:
+        - Relatorio
+      summary: Get Report v2
+      description: Buscar relatorio em formato PDF utilizando protocolo de vistoria finalizada (v2).
+      servers:
+        - url: https://api.infovist.com.br/api
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: protocol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportV2Response"
+        "404":
+          description: Recurso nao encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v2/assessment-automated/change-status:
+    post:
+      tags:
+        - Avaliacao
+      summary: Mudanca de status da analise automatizada (v2)
+      description: Altera o resultado da Analise Automatizada apresentada no relatorio.
+      servers:
+        - url: https://api.infovist.com.br/api
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeAssessmentStatusRequest"
+      responses:
+        "200":
+          description: Atualizado com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Status informado ja e o atual ou vistoria nao possui resumo da IA.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Requisicao nao autorizada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Recurso nao encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Campos obrigatorios nao preenchidos ou dados invalidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+
+  /v2/recapture-automated:
+    post:
+      tags:
+        - Vistoria
+      summary: Solicitacao de retriagem (v2)
+      description: |
+        Solicita ao usuario o reenvio de fotos para os passos selecionados.
+        E reprocessa o relatorio gerando novo resultado de avaliacao e novo PDF.
+      servers:
+        - url: https://api.infovist.com.br/api
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RetriageRequest"
+      responses:
+        "200":
+          description: Retriagem solicitada com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Vistoria nao esta finalizada ou ja possui retriagem em andamento.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Requisicao nao autorizada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Recurso nao encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Campos obrigatorios nao preenchidos ou dados invalidos.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+
+webhooks:
+  inspectionStatusChange:
+    post:
+      tags:
+        - Webhook
+      summary: Webhook de Vistoria
+      description: |
+        Enviado via POST para a URL configurada quando o status da vistoria muda.
+        Eventos:
+        - OPEN: Quando o usuario acessar o link da vistoria pela primeira vez.
+        - MAKE_REPORT: Quando o usuario concluir o envio das fotos da vistoria.
+        - AWAITING_RECAPTURE: Sempre que houver uma solicitacao de nova coleta de foto.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookInspectionPayload"
+      responses:
+        "200":
+          description: Webhook recebido com sucesso.
+
+  assessmentStatusChange:
+    post:
+      tags:
+        - Webhook
+      summary: Webhook de Avaliacao
+      description: |
+        Enviado via POST para a URL configurada quando o status da avaliacao muda.
+        Eventos:
+        - AWAITING_EVALUATION: Quando a vistoria entrar para avaliacao.
+        - ASSESSING: Quando o avaliador iniciar uma avaliacao.
+        - APPROVED: Quando o avaliador aprovar uma avaliacao.
+        - APPROVED_WITH_NOTES: Quando o avaliador aprovar uma avaliacao com ressalvas.
+        - REPROVED: Quando o avaliador reprovar uma avaliacao.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookAssessmentPayload"
+      responses:
+        "200":
+          description: Webhook recebido com sucesso.
+
+  reportClosed:
+    post:
+      tags:
+        - Webhook
+      summary: Webhook de Relatorio
+      description: |
+        Enviado via POST para a URL configurada quando o relatorio estiver finalizado.
+        Evento: CLOSED.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookReportPayload"
+      responses:
+        "200":
+          description: Webhook recebido com sucesso.
+
+  reportPdfGenerated:
+    post:
+      tags:
+        - Webhook
+      summary: Webhook de Relatorio PDF
+      description: |
+        Enviado via POST para a URL configurada quando o relatorio PDF estiver gerado.
+        Evento: GENERATED.
+        A propriedade assessment_status_enum sera retornada somente para clientes com modulo de Avaliacao instalado.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookReportPdfPayload"
+      responses:
+        "200":
+          description: Webhook recebido com sucesso.
