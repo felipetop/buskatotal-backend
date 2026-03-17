@@ -70,7 +70,8 @@ func Run() error {
 
         userHandler := httpinterfaces.NewUserHandler(userService)
         authHandler := httpinterfaces.NewAuthHandler(authService)
-        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware)
+        catalogHandler := httpinterfaces.NewCatalogHandler(cfg.CatalogMarkup)
+        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware, catalogHandler)
     } else {
         client, err := firestore.NewClient(cfg.FirebaseProjectID)
         if err != nil {
@@ -92,7 +93,8 @@ func Run() error {
 
         userHandler := httpinterfaces.NewUserHandler(userService)
         authHandler := httpinterfaces.NewAuthHandler(authService)
-        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware)
+        catalogHandler := httpinterfaces.NewCatalogHandler(cfg.CatalogMarkup)
+        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware, catalogHandler)
     }
 
     addr := fmt.Sprintf(":%s", cfg.Port)

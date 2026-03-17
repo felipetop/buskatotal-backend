@@ -2,7 +2,7 @@ package http
 
 import "github.com/gin-gonic/gin"
 
-func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, authHandler *AuthHandler, infocarHandler *InfocarHandler, paymentHandler *PaymentHandler, authMiddleware *AuthMiddleware) {
+func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, authHandler *AuthHandler, infocarHandler *InfocarHandler, paymentHandler *PaymentHandler, authMiddleware *AuthMiddleware, catalogHandler *CatalogHandler) {
 
     if authHandler != nil {
         auth := router.Group("/auth")
@@ -48,6 +48,10 @@ func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, authHandler *A
             payments.GET("/users/:id/orders", paymentHandler.ListOrders)
             payments.POST("/orders/:reference_id/sync", paymentHandler.SyncOrder)
         }
+    }
+
+    if catalogHandler != nil {
+        router.GET("/catalog", catalogHandler.GetCatalog)
     }
 
     if infocarHandler != nil {

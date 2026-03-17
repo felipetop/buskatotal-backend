@@ -367,6 +367,28 @@ paths:
         "403":
           description: Tentativa de creditar outro usuário
 
+  # ── Catálogo ─────────────────────────────────────────────────────────────────
+
+  /catalog:
+    get:
+      summary: Catálogo de produtos com preços de venda
+      tags: [Catálogo]
+      description: |
+        Retorna todas as categorias e produtos com preços de venda já calculados
+        (custo × markup). Endpoint público, sem autenticação.
+
+        O markup é configurado via env var `CATALOG_MARKUP` no servidor
+        (ex: `2.0` = 200% de margem sobre o custo).
+      responses:
+        "200":
+          description: Lista de categorias com produtos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CatalogCategory"
+
   # ── Infocar ──────────────────────────────────────────────────────────────────
 
   /infocar/agregados-b/{tipo}/{valor}:
@@ -619,6 +641,41 @@ components:
         amount:
           type: integer
           format: int64
+
+    # ── Catálogo ──────────────────────────────────────────────────────────────
+    CatalogItem:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "AGREGADOS B"
+        description:
+          type: string
+          example: "Consolidação técnica básica: marca, modelo, versão, ano..."
+        price:
+          type: string
+          description: Preço de venda formatado em BRL
+          example: "R$1,50"
+
+    CatalogCategory:
+      type: object
+      properties:
+        key:
+          type: string
+          example: "VEICULAR"
+        label:
+          type: string
+          example: "Veicular"
+        iconColor:
+          type: string
+          example: "blue"
+        count:
+          type: string
+          example: "30 consultas"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CatalogItem"
 
     # ── Infocar ───────────────────────────────────────────────────────────────
     AgregadosBResponse:
