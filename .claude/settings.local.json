@@ -9,10 +9,20 @@
       "WebFetch(domain:ecommerce.picpay.com)",
       "WebFetch(domain:api.picpay.com)",
       "WebFetch(domain:api.ms.qa.limbo.work)",
-      "Read(//c/Users/Dell/Desktop/buska-total/buska-total-html/src/app/pages/pagamentos/**)"
+      "Read(//c/Users/Dell/Desktop/buska-total/buska-total-html/src/app/pages/pagamentos/**)",
+      "Read(//c/Users/Dell/Desktop/buska-total/buska-total-html/src/app/pages/**)",
+      "Read(//c/Users/Dell/Desktop/buska-total/buska-total-html/src/app/services/**)",
+      "Read(//c/Users/Dell/Desktop/buska-total/buska-total-html/src/app/repositories/**)",
+      "Read(//c/Users/Dell/Desktop/buska-total/buska-total-html/src/app/config/**)",
+      "Read(//c/Users/Dell/Desktop/buska-total/buska-total-html/src/environments/**)",
+      "Read(//c/Users/Dell/Desktop/buska-total/buska-total-html/**)",
+      "Bash(tasklist /fo csv /nh)",
+      "Bash(powershell -Command \"Get-Process | Sort-Object CPU -Descending | Select-Object -First 15 Name, CPU, WorkingSet | Format-Table -AutoSize\")"
     ],
     "additionalDirectories": [
-      "c:\\Users\\Dell\\Desktop\\buska-total\\buska-total-html\\src\\app\\pages\\pagamentos"
+      "c:\\Users\\Dell\\Desktop\\buska-total\\buska-total-html\\src\\app\\pages\\pagamentos",
+      "c:\\Users\\Dell\\Desktop\\buska-total\\buska-total-html\\mock",
+      "c:\\Users\\Dell\\Desktop\\buska-total\\buska-total-html"
     ]
   }
 }

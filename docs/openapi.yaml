@@ -383,6 +383,10 @@ paths:
           schema:
             type: string
             enum: [placa, chassi, motor]
+          description: |
+            - `placa` — consulta por placa veicular (ex: ABC1234)
+            - `chassi` — consulta por chassi (17 caracteres)
+            - `motor` — consulta por número do motor
           example: placa
         - name: valor
           in: path
@@ -623,9 +627,20 @@ components:
         solicitacao:
           type: object
           additionalProperties: true
+          example:
+            tipo: "placa"
+            valor: "ABC1234"
+            data: "2026-03-17T12:00:00Z"
         retorno:
           type: object
           additionalProperties: true
+          example:
+            status: "OK"
+            mensagem: "Consulta realizada com sucesso"
         dados:
           type: object
           additionalProperties: true
+          description: |
+            Dados do veículo. Campos comuns:
+            `placa`, `chassi`, `renavam`, `marca`, `modelo`, `anoFabricacao`, `anoModelo`,
+            `cor`, `combustivel`, `municipio`, `uf`, `situacao`, `restricoes`, `proprietario`
