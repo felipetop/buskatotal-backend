@@ -331,6 +331,127 @@ func (s *InfovistService) CreateInspection(ctx context.Context, userID string, i
 
 ---
 
+## Mapa de Segurança por Endpoint
+
+Checklist de todas as proteções aplicadas em cada endpoint da API.
+
+### Legenda
+
+- **Auth** — requer JWT ou X-User-Id
+- **Ownership** — verifica se o recurso pertence ao usuário autenticado
+- **Débito atômico** — usa DebitBalance com mutex/transaction (sem race condition)
+- **Rollback** — devolve saldo se a API externa falhar
+- **Idempotente** — executar N vezes tem o mesmo efeito que executar 1 vez
+- **Validação** — valida input antes de qualquer operação com efeito colateral
+
+### Autenticação
+
+| Endpoint | Auth | Proteções |
+|---|---|---|
+| `POST /auth/register` | Pública | Validação de senha forte (10 chars, maiúscula, minúscula, número, especial) |
+| `POST /auth/login` | Pública | Retorna 401 para credenciais inválidas, hash bcrypt |
+
+### Usuários
+
+| Endpoint | Auth | Ownership | Proteções |
+|---|---|---|---|
+| `POST /users` | Pública | - | Validação de campos |
+| `GET /users` | Pública | - | - |
+| `GET /users/:id` | Pública | - | - |
+| `PUT /users/:id` | Pública | - | - |
+| `DELETE /users/:id` | Pública | - | - |
+| `GET /users/:id/balance` | JWT | `id == authUserID` | Só pode ver próprio saldo |
+
+> **Nota:** Os endpoints CRUD de usuários estão públicos. Em produção, considerar proteger com auth e/ou role admin.
+
+### Pagamentos
+
+| Endpoint | Auth | Ownership | Proteções |
+|---|---|---|---|
+| `POST /payments/users/:id/credit` | JWT | `id == authUserID` | **Bloqueado em produção** (`allowCredit=false`). Só funciona em modo mock. Validação amount > 0 |
+| `POST /payments/users/:id/orders` | JWT | `id == authUserID` | Validação (amount > 0, CPF obrigatório, email obrigatório). Verifica se usuário existe |
+| `GET /payments/users/:id/orders` | JWT | `id == authUserID` | Só lista pedidos do próprio usuário |
+| `POST /payments/orders/:reference_id/sync` | JWT | `order.UserID == authUserID` | Verifica ownership do pedido antes de processar |
+| `POST /payments/webhook` | **Pública** | - | Ver detalhes abaixo |
+
+#### Segurança do Webhook
+
+O webhook é público porque o PicPay precisa chamá-lo sem autenticação nossa. As proteções são:
+
+1. **Nunca confia no payload** — o webhook recebe o `paymentLinkId`, mas o backend **sempre re-consulta o PicPay** para confirmar o status real. Mesmo que alguém chame o webhook com dados falsos, o status vem da API do PicPay.
+
+2. **Idempotência** — se o webhook for chamado 2x para o mesmo pedido:
+   ```
+   1ª chamada: order.Status == pending → consulta PicPay → status = paid → credita ✅
+   2ª chamada: order.Status == paid → return nil (não faz nada) ✅
+   ```
+
+3. **CreditBalance atômico** — mesmo que dois webhooks passem da verificação de idempotência simultaneamente (improvável mas possível), o `CreditBalance` usa operação atômica, então o saldo é creditado corretamente.
+
+4. **Retorna 200 mesmo em erro** — para evitar que o PicPay faça retries infinitos em pedidos que não existem no nosso banco.
+
+### Consultas Veiculares
+
+| Endpoint | Auth | Proteções |
+|---|---|---|
+| `GET /consultas/veicular/agregados/:tipo/:valor` | JWT | Débito atômico, rollback se API falhar, validação de tipo (placa/chassi/motor) |
+
+### Vistorias
+
+| Endpoint | Auth | Custo | Proteções |
+|---|---|---|---|
+| `GET /vistorias` | JWT | Grátis | Retorna apenas vistorias do `authUserID` (dados locais) |
+| `POST /vistorias` | JWT | R$30,96 | Débito atômico, rollback se API falhar, validação (customer, cellphone, plate/chassis), salva no histórico local |
+| `GET /vistorias/:protocol` | JWT | Grátis | Atualiza status local automaticamente |
+| `GET /vistorias/:protocol/relatorio` | JWT | Grátis | - |
+| `GET /vistorias/:protocol/relatorio-completo` | JWT | Grátis | - |
+
+### Catálogo
+
+| Endpoint | Auth | Proteções |
+|---|---|---|
+| `GET /catalog` | Pública | Endpoint somente leitura, sem dados sensíveis |
+
+### Sistema
+
+| Endpoint | Auth | Proteções |
+|---|---|---|
+| `GET /health` | Pública | Somente leitura |
+
+---
+
+## Proteções Globais
+
+### Middleware de Autenticação
+
+Todos os endpoints protegidos passam pelo `AuthMiddleware` que:
+1. Extrai o token do header (`Authorization: Bearer <jwt>` ou `X-User-Id` em mock)
+2. Valida o token com o provider (JWT decode ou mock lookup)
+3. Injeta o `authUserID` no contexto do Gin
+4. Rejeita com 401 se o token for inválido ou ausente
+
+### Interceptor de Erros (Frontend)
+
+O frontend tem um `ErrorInterceptor` que:
+1. Captura respostas HTTP com status de erro
+2. Em 401: faz logout automático e redireciona para `/login`
+3. Exibe toast de erro para o usuário
+
+### CORS
+
+Configurado no `app.go` com headers permitidos:
+- `Content-Type`, `Authorization`, `X-User-Id`
+- Métodos: `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS`
+
+### Rotas sem Exposição de Fornecedor
+
+Nenhuma rota pública expõe o nome dos fornecedores:
+- `/consultas/veicular/agregados` em vez de `/infocar/agregados-b`
+- `/vistorias` em vez de `/infovist/inspection`
+- `/payments` em vez de `/picpay`
+
+---
+
 ## Testes de Segurança
 
 Todos esses cenários são cobertos por testes unitários automatizados:
