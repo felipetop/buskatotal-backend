@@ -22,6 +22,10 @@ type Config struct {
 	PicPayClientSecret string  // OAuth2 client_secret for PicPay Checkout API
 	AppBaseURL         string  // public base URL used to build the PicPay callback URL
 	CatalogMarkup      float64 // sale price multiplier applied to cost prices (e.g. 3.0 = 3x cost)
+	InfovistEmail      string  // Infovist API email credential
+	InfovistPassword   string  // Infovist API password credential
+	InfovistAPIToken   string  // Infovist API integration token
+	InfovistBaseURL    string  // Infovist API base URL
 }
 
 func Load() Config {
@@ -43,6 +47,12 @@ func Load() Config {
 		PicPayClientSecret: getEnv("PICPAY_CLIENT_SECRET", ""),
 		AppBaseURL:         getEnv("APP_BASE_URL", "http://localhost:8080"),
 		CatalogMarkup:      parseFloat(getEnv("CATALOG_MARKUP", "2.0")),
+		// INFOVIST_EMAIL, INFOVIST_PASSWORD, INFOVIST_API_TOKEN devem ser definidos em
+		// variáveis de ambiente seguras. Não comitar valores reais no código.
+		InfovistEmail:      getEnv("INFOVIST_EMAIL", ""),
+		InfovistPassword:   getEnv("INFOVIST_PASSWORD", ""),
+		InfovistAPIToken:   getEnv("INFOVIST_API_TOKEN", ""),
+		InfovistBaseURL:    getEnv("INFOVIST_BASE_URL", "https://api.infovist.com.br/api/v1"),
 	}
 }
 

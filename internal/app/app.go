@@ -13,6 +13,7 @@ import (
     "buskatotal-backend/internal/domain/payment"
     "buskatotal-backend/internal/infra/firestore"
     "buskatotal-backend/internal/infra/infocar"
+    "buskatotal-backend/internal/infra/infovist"
     "buskatotal-backend/internal/infra/memory"
     authinfra "buskatotal-backend/internal/infra/auth"
     paymentinfra "buskatotal-backend/internal/infra/payment"
@@ -68,10 +69,14 @@ func Run() error {
         paymentService := NewPaymentService(paymentProvider, orderRepo, userRepo, cfg.AppBaseURL)
         paymentHandler := httpinterfaces.NewPaymentHandler(paymentService)
 
+        infovistClient := infovist.NewClient(cfg.InfovistBaseURL, cfg.InfovistEmail, cfg.InfovistPassword, cfg.InfovistAPIToken)
+        infovistService := NewInfovistService(infovistClient, userRepo, 10356, 3096)
+        infovistHandler := httpinterfaces.NewInfovistHandler(infovistService)
+
         userHandler := httpinterfaces.NewUserHandler(userService)
         authHandler := httpinterfaces.NewAuthHandler(authService)
         catalogHandler := httpinterfaces.NewCatalogHandler(cfg.CatalogMarkup)
-        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware, catalogHandler)
+        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware, catalogHandler, infovistHandler)
     } else {
         client, err := firestore.NewClient(cfg.FirebaseProjectID)
         if err != nil {
@@ -89,12 +94,16 @@ func Run() error {
         paymentService := NewPaymentService(paymentProvider, orderRepo, userRepo, cfg.AppBaseURL)
         paymentHandler := httpinterfaces.NewPaymentHandler(paymentService)
 
+        infovistClient := infovist.NewClient(cfg.InfovistBaseURL, cfg.InfovistEmail, cfg.InfovistPassword, cfg.InfovistAPIToken)
+        infovistService := NewInfovistService(infovistClient, userRepo, 10356, 3096)
+        infovistHandler := httpinterfaces.NewInfovistHandler(infovistService)
+
         go startReconciliationWorker(paymentService)
 
         userHandler := httpinterfaces.NewUserHandler(userService)
         authHandler := httpinterfaces.NewAuthHandler(authService)
         catalogHandler := httpinterfaces.NewCatalogHandler(cfg.CatalogMarkup)
-        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware, catalogHandler)
+        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware, catalogHandler, infovistHandler)
     }
 
     addr := fmt.Sprintf(":%s", cfg.Port)

@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: BuskaTotal Backend API
   description: |
-    API para gestão de usuários, consultas Infocar (Agregados B) e pagamentos via PicPay.
+    API para gestão de usuários, consultas Infocar (Agregados B), vistorias digitais Infovist e pagamentos via PicPay.
 
     ## Autenticação
     - `AUTH_MODE=mock` (local): use o header `X-User-Id` com o ID do usuário.
@@ -389,6 +389,144 @@ paths:
                 items:
                   $ref: "#/components/schemas/CatalogCategory"
 
+  # ── Infovist ─────────────────────────────────────────────────────────────────
+
+  /infovist/inspection:
+    post:
+      summary: Criar vistoria digital (Infovist)
+      tags: [Infovist]
+      description: |
+        Cria uma nova vistoria digital via Infovist. O cliente receberá um link
+        por WhatsApp/SMS para enviar as fotos do veículo.
+
+        **Custo:** R$103,56 (VISTORIA DIGITAL) — debitado do saldo do usuário.
+
+        Requer `plate` ou `chassis` (pelo menos um).
+      parameters:
+        - $ref: "#/components/parameters/MockAuthHeader"
+        - $ref: "#/components/parameters/JWTAuthHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InfovistCreateInspectionInput"
+            example:
+              customer: "João Silva"
+              cellphone: "11999999999"
+              plate: "ABC1234"
+              notes: "Vistoria para financiamento"
+      responses:
+        "200":
+          description: Vistoria criada — use o `protocol` para acompanhar o status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InfovistCreateInspectionResponse"
+              example:
+                protocol: "18de85c0"
+        "400":
+          description: Saldo insuficiente, dados inválidos ou erro na Infovist
+        "401":
+          description: Não autenticado
+
+  /infovist/inspection/{protocol}:
+    get:
+      summary: Visualizar vistoria (Infovist)
+      tags: [Infovist]
+      description: |
+        Busca o status de uma vistoria pelo protocolo.
+        **Sem custo** — consulta gratuita.
+      parameters:
+        - name: protocol
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Protocolo da vistoria retornado na criação
+          example: "18de85c0"
+        - $ref: "#/components/parameters/MockAuthHeader"
+        - $ref: "#/components/parameters/JWTAuthHeader"
+      responses:
+        "200":
+          description: Dados da vistoria
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InfovistViewInspectionResponse"
+        "400":
+          description: Protocolo inválido ou erro na Infovist
+        "401":
+          description: Não autenticado
+
+  /infovist/report/v1/{protocol}:
+    get:
+      summary: Relatório PDF v1 (Infovist)
+      tags: [Infovist]
+      description: |
+        Busca o relatório em formato PDF de uma vistoria finalizada (v1).
+        Retorna URL do PDF e dados das APIs consultadas (FIPE, leilão, roubo/furto, etc).
+
+        Se o módulo de IA estiver ativo na conta, inclui dados de detecção de danos
+        por imagem (ia_flow) nos inspection_event_data.
+
+        **Custo:** R$30,96 (INFOVIST) — debitado do saldo do usuário.
+      parameters:
+        - name: protocol
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Protocolo da vistoria finalizada
+          example: "18de85c0"
+        - $ref: "#/components/parameters/MockAuthHeader"
+        - $ref: "#/components/parameters/JWTAuthHeader"
+      responses:
+        "200":
+          description: Relatório da vistoria
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InfovistReportV1Response"
+        "400":
+          description: Saldo insuficiente ou erro na Infovist
+        "401":
+          description: Não autenticado
+
+  /infovist/report/v2/{protocol}:
+    get:
+      summary: Relatório PDF v2 (Infovist)
+      tags: [Infovist]
+      description: |
+        Busca o relatório v2 de uma vistoria finalizada. Inclui dados mais detalhados:
+        - inspection_captures com IA (detecção de danos por foto)
+        - painting_check_steps (verificação de pintura)
+        - assessment_status e assessment_status_enum (resultado da avaliação)
+        - APIs consultadas (FIPE, leilão, roubo/furto, gravame, renajud, etc)
+
+        **Custo:** R$30,96 (INFOVIST) — debitado do saldo do usuário.
+      parameters:
+        - name: protocol
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Protocolo da vistoria finalizada
+          example: "18de85c0"
+        - $ref: "#/components/parameters/MockAuthHeader"
+        - $ref: "#/components/parameters/JWTAuthHeader"
+      responses:
+        "200":
+          description: Relatório v2 da vistoria
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InfovistReportV2Response"
+        "400":
+          description: Saldo insuficiente ou erro na Infovist
+        "401":
+          description: Não autenticado
+
   # ── Infocar ──────────────────────────────────────────────────────────────────
 
   /infocar/agregados-b/{tipo}/{valor}:
@@ -676,6 +814,154 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CatalogItem"
+
+    # ── Infovist ─────────────────────────────────────────────────────────────
+    InfovistCreateInspectionInput:
+      type: object
+      required: [customer, cellphone]
+      properties:
+        customer:
+          type: string
+          maxLength: 100
+          description: Nome do cliente
+          example: "João Silva"
+        cellphone:
+          type: string
+          minLength: 10
+          maxLength: 11
+          description: Celular do cliente (DDD + número, sem formatação)
+          example: "11999999999"
+        plate:
+          type: string
+          minLength: 7
+          maxLength: 7
+          description: Placa do veículo. Obrigatório se chassi não for informado.
+          example: "ABC1234"
+        chassis:
+          type: string
+          maxLength: 17
+          description: Chassi do veículo. Obrigatório se placa não for informada.
+        notes:
+          type: string
+          maxLength: 255
+          description: Observações sobre a vistoria
+        cpf:
+          type: string
+          minLength: 11
+          maxLength: 11
+          description: CPF do cliente (apenas para contas com módulo de Validação de Identidade)
+        can_notify:
+          type: boolean
+          default: true
+          description: Envie false para não notificar o cliente por WhatsApp/SMS
+        applet_profile_id:
+          type: string
+          format: uuid
+          description: ID do perfil de vistoria (opcional, para perfis específicos)
+
+    InfovistCreateInspectionResponse:
+      type: object
+      properties:
+        protocol:
+          type: string
+          description: Protocolo da vistoria criada (use para consultar status e relatório)
+          example: "18de85c0"
+
+    InfovistInspectionStatus:
+      type: object
+      properties:
+        value:
+          type: string
+          example: "Aguardando Envio"
+        status_enum:
+          type: string
+          example: "AWAITING_TO_SEND"
+        created_at:
+          type: string
+          format: date-time
+          example: "2020-01-01 00:00:01"
+
+    InfovistViewInspectionResponse:
+      type: object
+      properties:
+        protocol:
+          type: string
+          example: "18de85c0"
+        statuses:
+          type: array
+          items:
+            $ref: "#/components/schemas/InfovistInspectionStatus"
+
+    InfovistReportV1Response:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            report_pdf:
+              type: string
+              format: uri
+              description: URL do relatório em PDF
+            result:
+              type: object
+              properties:
+                apis:
+                  type: object
+                  additionalProperties: true
+                  description: Dados das APIs consultadas (FIPE, leilão, roubo/furto, gravame, etc)
+            inspection_id:
+              type: string
+              format: uuid
+              nullable: true
+            inspection_event_data:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+              description: Fotos e dados de cada passo da vistoria (inclui ia_flow se módulo IA ativo)
+            inspection_data:
+              type: object
+              additionalProperties: true
+              description: Dados do veículo inspecionado (placa, notas, geolocalização)
+
+    InfovistReportV2Response:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            inspection_data:
+              type: object
+              additionalProperties: true
+              description: Dados do veículo (placa, chassi, protocolo, checklist, painting_check_steps)
+            inspection_captures:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+              description: Fotos capturadas com geolocalização, validação e análise de IA
+            apis:
+              type: object
+              additionalProperties: true
+              description: Dados das APIs consultadas (ia_resume, pricing_decoder, leilão, roubo/furto, etc)
+            report_notes:
+              type: string
+              nullable: true
+            assessment_score_point:
+              type: integer
+              description: Pontuação da avaliação
+            assessment_status:
+              type: string
+              description: "Status da avaliação (ex: Aprovado, Reprovado, Avaliando)"
+            assessment_status_enum:
+              type: string
+              description: "Enum do status (ex: approved, reproved, assessing)"
+            assessment_notes:
+              type: string
+            report_pdf:
+              type: string
+              format: uri
+              description: URL do relatório em PDF
 
     # ── Infocar ───────────────────────────────────────────────────────────────
     AgregadosBResponse:
