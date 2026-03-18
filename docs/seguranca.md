@@ -355,6 +355,356 @@ go test ./internal/infra/memory/ ./internal/app/ -v
 
 ---
 
+## Melhorias futuras
+
+### 7. Rate Limiting por Usuário
+
+#### O que é
+
+Rate limiting é uma técnica que **limita a quantidade de requisições** que um usuário pode fazer em um período de tempo. Sem isso, um usuário (ou atacante) pode:
+
+- **Spam de consultas** — disparar centenas de requests por segundo, consumindo saldo rapidamente (pode ser intencional ou um bug no front)
+- **Ataque de força bruta** — tentar adivinhar protocolos de vistorias tentando milhares de combinações
+- **DDoS** — sobrecarregar a API com volume de requisições, afetando todos os usuários
+- **Abuso financeiro** — se houver alguma falha no débito, o volume alto de requests aumenta a chance de explorar
+
+#### Como implementar
+
+A abordagem mais comum é o **Token Bucket** (balde de fichas):
+
+```
+Cada usuário tem um balde com N fichas.
+Cada request consome 1 ficha.
+Fichas são repostas a uma taxa fixa (ex: 10 por minuto).
+Se o balde está vazio, request é rejeitado com 429 Too Many Requests.
+```
+
+##### Opção 1 — Middleware no Gin (em memória)
+
+```go
+// Exemplo conceitual — implementar em internal/interfaces/http/rate_limiter.go
+type RateLimiter struct {
+    mu       sync.Mutex
+    buckets  map[string]*bucket  // userID → bucket
+    rate     int                 // fichas por minuto
+    capacity int                 // máximo de fichas acumuladas
+}
+
+type bucket struct {
+    tokens    float64
+    lastCheck time.Time
+}
+
+func (rl *RateLimiter) Allow(userID string) bool {
+    rl.mu.Lock()
+    defer rl.mu.Unlock()
+
+    b := rl.buckets[userID]
+    now := time.Now()
+    elapsed := now.Sub(b.lastCheck).Minutes()
+
+    // Repor fichas proporcionalmente ao tempo passado
+    b.tokens = min(float64(rl.capacity), b.tokens + elapsed*float64(rl.rate))
+    b.lastCheck = now
+
+    if b.tokens < 1 {
+        return false  // Sem fichas — rejeitar
+    }
+    b.tokens--
+    return true
+}
+```
+
+Uso como middleware:
+```go
+func (rl *RateLimiter) Handler() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        userID, _ := GetAuthUserID(c)
+        if !rl.Allow(userID) {
+            c.AbortWithStatusJSON(429, gin.H{
+                "error": "too many requests, try again later",
+            })
+            return
+        }
+        c.Next()
+    }
+}
+```
+
+##### Opção 2 — Redis (produção distribuída)
+
+Se tivermos múltiplas instâncias do backend (horizontal scaling), o rate limiter em memória não funciona porque cada instância tem seu próprio balde. Nesse caso, usamos Redis:
+
+```go
+// Usa o comando INCR + EXPIRE do Redis
+// Chave: "rate:userID:minuto_atual"
+// Se count > limit → rejeita
+func (rl *RedisRateLimiter) Allow(ctx context.Context, userID string) bool {
+    key := fmt.Sprintf("rate:%s:%d", userID, time.Now().Unix()/60)
+    count, _ := rl.redis.Incr(ctx, key).Result()
+    if count == 1 {
+        rl.redis.Expire(ctx, key, 2*time.Minute)  // Auto-limpa
+    }
+    return count <= int64(rl.limit)
+}
+```
+
+##### Limites sugeridos
+
+| Endpoint | Limite sugerido | Motivo |
+|---|---|---|
+| `POST /vistorias` | 5/minuto | Custa R$103,56 cada — spam improvável |
+| `GET /vistorias/:protocol` | 30/minuto | Gratuito, mas não precisa abusar |
+| `GET /vistorias/:protocol/relatorio` | 10/minuto | Custa R$30,96 |
+| `GET /consultas/veicular/:tipo/:valor` | 20/minuto | Consulta paga |
+| `POST /auth/login` | 5/minuto | Prevenção de força bruta |
+
+#### Conceitos relacionados
+
+- **Token Bucket** — algoritmo que permite bursts controlados de tráfego
+- **Sliding Window** — variação que conta requests em uma janela deslizante de tempo
+- **429 Too Many Requests** — código HTTP padrão para rate limiting
+- **API Gateway** — em produção, o rate limiting pode ser feito no Google Cloud API Gateway ou Cloudflare, antes de chegar no backend
+
+---
+
+### 8. Logging Estruturado para Auditoria
+
+#### O que é
+
+Logging estruturado é registrar eventos em formato **parseável** (JSON) em vez de texto livre. Isso permite:
+
+- **Auditoria financeira** — rastrear cada débito e crédito (quem, quando, quanto, por quê)
+- **Debug de produção** — entender o que aconteceu sem acessar o banco
+- **Alertas automáticos** — configurar alertas quando padrões suspeitos aparecem
+- **Compliance** — provar que operações financeiras foram executadas corretamente
+
+#### O que logar
+
+##### Operações financeiras (OBRIGATÓRIO)
+
+Toda operação que altera saldo deve gerar um log:
+
+```json
+{
+  "level": "info",
+  "event": "balance_debit",
+  "user_id": "550e8400-...",
+  "amount_cents": 10356,
+  "product": "vistoria_digital",
+  "protocol": "18de85c0",
+  "balance_before": 50000,
+  "balance_after": 39644,
+  "timestamp": "2026-03-17T15:30:00Z"
+}
+```
+
+```json
+{
+  "level": "info",
+  "event": "balance_credit_rollback",
+  "user_id": "550e8400-...",
+  "amount_cents": 10356,
+  "reason": "api_call_failed",
+  "error": "connection refused",
+  "timestamp": "2026-03-17T15:30:01Z"
+}
+```
+
+```json
+{
+  "level": "info",
+  "event": "payment_confirmed",
+  "user_id": "550e8400-...",
+  "order_id": "abc123",
+  "amount_cents": 5000,
+  "provider": "picpay",
+  "timestamp": "2026-03-17T15:30:00Z"
+}
+```
+
+##### Eventos de segurança (RECOMENDADO)
+
+```json
+{
+  "level": "warn",
+  "event": "unauthorized_sync_attempt",
+  "user_id": "atacante-id",
+  "order_owner": "vitima-id",
+  "reference_id": "ref-123",
+  "timestamp": "2026-03-17T15:30:00Z"
+}
+```
+
+```json
+{
+  "level": "warn",
+  "event": "credit_blocked_production",
+  "user_id": "550e8400-...",
+  "amount_cents": 999999,
+  "timestamp": "2026-03-17T15:30:00Z"
+}
+```
+
+#### Como implementar em Go
+
+##### Opção 1 — `log/slog` (stdlib, Go 1.21+)
+
+```go
+import "log/slog"
+
+// No service, após débito
+slog.Info("balance_debit",
+    "user_id", userID,
+    "amount_cents", cost,
+    "product", "vistoria_digital",
+)
+
+// No rollback
+slog.Warn("balance_credit_rollback",
+    "user_id", userID,
+    "amount_cents", cost,
+    "reason", "api_call_failed",
+    "error", err.Error(),
+)
+```
+
+##### Opção 2 — `zerolog` (mais performático)
+
+```go
+import "github.com/rs/zerolog/log"
+
+log.Info().
+    Str("event", "balance_debit").
+    Str("user_id", userID).
+    Int64("amount_cents", cost).
+    Str("product", "vistoria_digital").
+    Msg("saldo debitado")
+```
+
+#### Onde os logs vão parar
+
+- **Local**: stdout (visível no terminal)
+- **Cloud Run**: Google Cloud Logging (automático, basta logar no stdout em JSON)
+- **Análise**: BigQuery ou Loki para queries sobre os logs
+
+#### Conceitos relacionados
+
+- **Structured Logging** — logs em formato parseável (JSON) em vez de texto livre
+- **Audit Trail** — registro imutável de todas as operações financeiras
+- **Observability** — a capacidade de entender o estado interno do sistema olhando de fora (logs + metrics + traces)
+- **ELK Stack / Grafana Loki** — ferramentas para armazenar, buscar e visualizar logs
+
+---
+
+### 9. Testes de Integração com API Real
+
+#### O que é
+
+Testes de integração verificam que o sistema funciona **com as dependências reais** (API da Infovist, Firestore, PicPay), diferente dos testes unitários que usam mocks.
+
+#### Por que são necessários
+
+Os testes unitários garantem que a **lógica interna** está correta, mas não garantem que:
+
+- A API da Infovist aceita o formato dos dados que enviamos
+- Os campos da resposta da Infovist batem com nossos structs
+- O token de autenticação funciona e renova corretamente
+- O Firestore transaction realmente previne race conditions em produção
+
+#### Como organizar
+
+##### Ambiente de staging
+
+Criar um ambiente separado para testes que usa credenciais reais mas isoladas:
+
+```
+INFOVIST_EMAIL=staging@buskatotal.com
+INFOVIST_PASSWORD=staging-password
+INFOVIST_API_TOKEN=staging-token
+INFOVIST_BASE_URL=https://api.infovist.com.br/api/v1
+FIREBASE_PROJECT_ID=buskatotal-staging
+```
+
+##### Estrutura dos testes
+
+```go
+// internal/infra/infovist/client_integration_test.go
+
+//go:build integration
+// Esse build tag impede que rode com `go test ./...`
+// Só roda com: go test -tags=integration ./...
+
+func TestAuthenticate_Real(t *testing.T) {
+    client := NewClient(
+        os.Getenv("INFOVIST_BASE_URL"),
+        os.Getenv("INFOVIST_EMAIL"),
+        os.Getenv("INFOVIST_PASSWORD"),
+        os.Getenv("INFOVIST_API_TOKEN"),
+    )
+
+    resp, err := client.Authenticate(context.Background())
+    if err != nil {
+        t.Fatalf("auth failed: %v", err)
+    }
+    if resp.AccessToken == "" {
+        t.Fatal("expected non-empty access token")
+    }
+    t.Logf("token obtained, expires_in: %d", resp.ExpiresIn)
+}
+
+func TestCreateInspection_Real(t *testing.T) {
+    // ... autenticar primeiro
+    // ... criar vistoria com dados de teste
+    // ... verificar que o protocolo foi retornado
+    // ... consultar status com o protocolo
+}
+```
+
+##### Como rodar
+
+```bash
+# Testes unitários (rápidos, sem dependências externas)
+go test ./...
+
+# Testes de integração (lentos, precisa de credenciais)
+go test -tags=integration ./internal/infra/infovist/ -v
+```
+
+##### CI/CD
+
+No pipeline de CI/CD (GitHub Actions, Cloud Build):
+
+```yaml
+# Roda em todo push
+- name: Unit Tests
+  run: go test ./...
+
+# Roda só antes de deploy para produção
+- name: Integration Tests
+  run: go test -tags=integration ./...
+  env:
+    INFOVIST_EMAIL: ${{ secrets.INFOVIST_EMAIL }}
+    INFOVIST_PASSWORD: ${{ secrets.INFOVIST_PASSWORD }}
+    INFOVIST_API_TOKEN: ${{ secrets.INFOVIST_API_TOKEN }}
+```
+
+#### Cuidados
+
+- **Nunca rodar testes de integração em produção** — use credenciais de staging
+- **Dados de teste** — usar placas/chassi de teste que não gerem custos reais (combinar com o fornecedor)
+- **Limpar dados** — cancelar vistorias criadas em teste para não poluir a conta
+- **Rate limiting** — não rodar muitos testes em paralelo para não ser bloqueado pela API
+
+#### Conceitos relacionados
+
+- **Test Pyramid** — muitos testes unitários (base), poucos testes de integração (meio), menos testes E2E (topo)
+- **Build Tags** — em Go, permitem incluir/excluir arquivos da compilação com `//go:build tag`
+- **Staging Environment** — ambiente que replica produção mas com dados isolados
+- **Contract Testing** — verificar que a API do fornecedor retorna o formato esperado
+
+---
+
 ## Referências para estudo
 
 - **OWASP Top 10** — lista das 10 vulnerabilidades mais comuns em aplicações web

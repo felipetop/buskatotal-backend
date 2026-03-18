@@ -55,25 +55,25 @@ func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, authHandler *A
     }
 
     if infocarHandler != nil {
-        infocar := router.Group("/infocar")
+        consultas := router.Group("/consultas")
         if authMiddleware != nil {
-            infocar.Use(authMiddleware.Handler())
+            consultas.Use(authMiddleware.Handler())
         }
         {
-            infocar.GET("/agregados-b/:tipo/:valor", infocarHandler.GetAgregadosB)
+            consultas.GET("/veicular/:tipo/:valor", infocarHandler.GetAgregadosB)
         }
     }
 
     if infovistHandler != nil {
-        infovistGroup := router.Group("/infovist")
+        vistorias := router.Group("/vistorias")
         if authMiddleware != nil {
-            infovistGroup.Use(authMiddleware.Handler())
+            vistorias.Use(authMiddleware.Handler())
         }
         {
-            infovistGroup.POST("/inspection", infovistHandler.CreateInspection)
-            infovistGroup.GET("/inspection/:protocol", infovistHandler.ViewInspection)
-            infovistGroup.GET("/report/v1/:protocol", infovistHandler.GetReportV1)
-            infovistGroup.GET("/report/v2/:protocol", infovistHandler.GetReportV2)
+            vistorias.POST("", infovistHandler.CreateInspection)
+            vistorias.GET("/:protocol", infovistHandler.ViewInspection)
+            vistorias.GET("/:protocol/relatorio", infovistHandler.GetReportV1)
+            vistorias.GET("/:protocol/relatorio-completo", infovistHandler.GetReportV2)
         }
     }
 }

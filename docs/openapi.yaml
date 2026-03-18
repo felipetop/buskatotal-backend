@@ -389,14 +389,14 @@ paths:
                 items:
                   $ref: "#/components/schemas/CatalogCategory"
 
-  # ── Infovist ─────────────────────────────────────────────────────────────────
+  # ── Vistorias ─────────────────────────────────────────────────────────────────
 
-  /infovist/inspection:
+  /vistorias:
     post:
-      summary: Criar vistoria digital (Infovist)
-      tags: [Infovist]
+      summary: Criar vistoria digital
+      tags: [Vistorias]
       description: |
-        Cria uma nova vistoria digital via Infovist. O cliente receberá um link
+        Cria uma nova vistoria digital. O cliente receberá um link
         por WhatsApp/SMS para enviar as fotos do veículo.
 
         **Custo:** R$103,56 (VISTORIA DIGITAL) — debitado do saldo do usuário.
@@ -410,7 +410,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/InfovistCreateInspectionInput"
+              $ref: "#/components/schemas/CreateVistoriaInput"
             example:
               customer: "João Silva"
               cellphone: "11999999999"
@@ -422,18 +422,18 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InfovistCreateInspectionResponse"
+                $ref: "#/components/schemas/CreateVistoriaResponse"
               example:
                 protocol: "18de85c0"
         "400":
-          description: Saldo insuficiente, dados inválidos ou erro na Infovist
+          description: Saldo insuficiente, dados inválidos ou erro no provedor
         "401":
           description: Não autenticado
 
-  /infovist/inspection/{protocol}:
+  /vistorias/{protocol}:
     get:
-      summary: Visualizar vistoria (Infovist)
-      tags: [Infovist]
+      summary: Visualizar vistoria
+      tags: [Vistorias]
       description: |
         Busca o status de uma vistoria pelo protocolo.
         **Sem custo** — consulta gratuita.
@@ -453,24 +453,24 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InfovistViewInspectionResponse"
+                $ref: "#/components/schemas/ViewVistoriaResponse"
         "400":
-          description: Protocolo inválido ou erro na Infovist
+          description: Protocolo inválido ou erro no provedor
         "401":
           description: Não autenticado
 
-  /infovist/report/v1/{protocol}:
+  /vistorias/{protocol}/relatorio:
     get:
-      summary: Relatório PDF v1 (Infovist)
-      tags: [Infovist]
+      summary: Relatório da vistoria
+      tags: [Vistorias]
       description: |
-        Busca o relatório em formato PDF de uma vistoria finalizada (v1).
+        Busca o relatório em formato PDF de uma vistoria finalizada.
         Retorna URL do PDF e dados das APIs consultadas (FIPE, leilão, roubo/furto, etc).
 
-        Se o módulo de IA estiver ativo na conta, inclui dados de detecção de danos
-        por imagem (ia_flow) nos inspection_event_data.
+        Se o módulo de IA estiver ativo, inclui dados de detecção de danos
+        por imagem nos dados do evento.
 
-        **Custo:** R$30,96 (INFOVIST) — debitado do saldo do usuário.
+        **Custo:** R$30,96 — debitado do saldo do usuário.
       parameters:
         - name: protocol
           in: path
@@ -487,16 +487,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InfovistReportV1Response"
+                $ref: "#/components/schemas/RelatorioV1Response"
         "400":
-          description: Saldo insuficiente ou erro na Infovist
+          description: Saldo insuficiente ou erro no provedor
         "401":
           description: Não autenticado
 
-  /infovist/report/v2/{protocol}:
+  /vistorias/{protocol}/relatorio-completo:
     get:
-      summary: Relatório PDF v2 (Infovist)
-      tags: [Infovist]
+      summary: Relatório completo da vistoria
+      tags: [Vistorias]
       description: |
         Busca o relatório v2 de uma vistoria finalizada. Inclui dados mais detalhados:
         - inspection_captures com IA (detecção de danos por foto)
@@ -504,7 +504,7 @@ paths:
         - assessment_status e assessment_status_enum (resultado da avaliação)
         - APIs consultadas (FIPE, leilão, roubo/furto, gravame, renajud, etc)
 
-        **Custo:** R$30,96 (INFOVIST) — debitado do saldo do usuário.
+        **Custo:** R$30,96 — debitado do saldo do usuário.
       parameters:
         - name: protocol
           in: path
@@ -517,22 +517,22 @@ paths:
         - $ref: "#/components/parameters/JWTAuthHeader"
       responses:
         "200":
-          description: Relatório v2 da vistoria
+          description: Relatório completo da vistoria
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InfovistReportV2Response"
+                $ref: "#/components/schemas/RelatorioCompletoResponse"
         "400":
-          description: Saldo insuficiente ou erro na Infovist
+          description: Saldo insuficiente ou erro no provedor
         "401":
           description: Não autenticado
 
-  # ── Infocar ──────────────────────────────────────────────────────────────────
+  # ── Consultas Veiculares ────────────────────────────────────────────────────
 
-  /infocar/agregados-b/{tipo}/{valor}:
+  /consultas/veicular/{tipo}/{valor}:
     get:
-      summary: Consultar Agregados B (Infocar)
-      tags: [Infocar]
+      summary: Consulta veicular
+      tags: [Consultas]
       description: |
         Consulta dados de emplacamento (Agregados B). Requer autenticação.
         Debita 1 unidade do saldo do usuário.
@@ -558,7 +558,7 @@ paths:
         - $ref: "#/components/parameters/JWTAuthHeader"
       responses:
         "200":
-          description: Resposta Infocar
+          description: Dados do veículo
           content:
             application/json:
               schema:
@@ -815,8 +815,8 @@ components:
           items:
             $ref: "#/components/schemas/CatalogItem"
 
-    # ── Infovist ─────────────────────────────────────────────────────────────
-    InfovistCreateInspectionInput:
+    # ── Vistorias ─────────────────────────────────────────────────────────────
+    CreateVistoriaInput:
       type: object
       required: [customer, cellphone]
       properties:
@@ -859,7 +859,7 @@ components:
           format: uuid
           description: ID do perfil de vistoria (opcional, para perfis específicos)
 
-    InfovistCreateInspectionResponse:
+    CreateVistoriaResponse:
       type: object
       properties:
         protocol:
@@ -867,7 +867,7 @@ components:
           description: Protocolo da vistoria criada (use para consultar status e relatório)
           example: "18de85c0"
 
-    InfovistInspectionStatus:
+    VistoriaStatus:
       type: object
       properties:
         value:
@@ -881,7 +881,7 @@ components:
           format: date-time
           example: "2020-01-01 00:00:01"
 
-    InfovistViewInspectionResponse:
+    ViewVistoriaResponse:
       type: object
       properties:
         protocol:
@@ -890,9 +890,9 @@ components:
         statuses:
           type: array
           items:
-            $ref: "#/components/schemas/InfovistInspectionStatus"
+            $ref: "#/components/schemas/VistoriaStatus"
 
-    InfovistReportV1Response:
+    RelatorioV1Response:
       type: object
       properties:
         data:
@@ -908,7 +908,7 @@ components:
                 apis:
                   type: object
                   additionalProperties: true
-                  description: Dados das APIs consultadas (FIPE, leilão, roubo/furto, gravame, etc)
+                  description: Dados das consultas (FIPE, leilão, roubo/furto, gravame, etc)
             inspection_id:
               type: string
               format: uuid
@@ -918,13 +918,13 @@ components:
               items:
                 type: object
                 additionalProperties: true
-              description: Fotos e dados de cada passo da vistoria (inclui ia_flow se módulo IA ativo)
+              description: Fotos e dados de cada passo da vistoria (inclui detecção IA se módulo ativo)
             inspection_data:
               type: object
               additionalProperties: true
               description: Dados do veículo inspecionado (placa, notas, geolocalização)
 
-    InfovistReportV2Response:
+    RelatorioCompletoResponse:
       type: object
       properties:
         data:
@@ -933,7 +933,7 @@ components:
             inspection_data:
               type: object
               additionalProperties: true
-              description: Dados do veículo (placa, chassi, protocolo, checklist, painting_check_steps)
+              description: Dados do veículo (placa, chassi, protocolo, checklist, verificação de pintura)
             inspection_captures:
               type: array
               items:
@@ -943,7 +943,7 @@ components:
             apis:
               type: object
               additionalProperties: true
-              description: Dados das APIs consultadas (ia_resume, pricing_decoder, leilão, roubo/furto, etc)
+              description: Dados das consultas (resumo IA, precificação, leilão, roubo/furto, etc)
             report_notes:
               type: string
               nullable: true
@@ -963,7 +963,7 @@ components:
               format: uri
               description: URL do relatório em PDF
 
-    # ── Infocar ───────────────────────────────────────────────────────────────
+    # ── Consultas Veiculares ─────────────────────────────────────────────────
     AgregadosBResponse:
       type: object
       properties:
