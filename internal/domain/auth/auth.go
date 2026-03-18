@@ -8,4 +8,5 @@ type Provider interface {
 
 type Result struct {
     UserID string
+    Role   string
 }

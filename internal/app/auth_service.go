@@ -31,6 +31,12 @@ func validatePassword(password string) error {
     return nil
 }
 
+// adminEmails is the list of emails that automatically get admin role.
+var adminEmails = map[string]bool{
+    "dcparticular2014@gmail.com": true,
+    "felipejorgetop@gmail.com":   true,
+}
+
 type AuthService struct {
     repo      user.Repository
     jwtSecret []byte
@@ -63,16 +69,22 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
         return user.User{}, "", errors.New("could not hash password")
     }
 
+    role := user.RoleUser
+    if adminEmails[email] {
+        role = user.RoleAdmin
+    }
+
     created, err := s.repo.Create(ctx, user.User{
         Name:         name,
         Email:        email,
+        Role:         role,
         PasswordHash: string(hash),
     })
     if err != nil {
         return user.User{}, "", err
     }
 
-    token, err := s.generateToken(created.ID)
+    token, err := s.generateToken(created.ID, created.Role)
     if err != nil {
         return user.User{}, "", err
     }
@@ -94,7 +106,13 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (user.U
         return user.User{}, "", errors.New("invalid credentials")
     }
 
-    token, err := s.generateToken(entity.ID)
+    // Upgrade role if email is in admin list but user was created before admin feature
+    if adminEmails[entity.Email] && entity.Role != user.RoleAdmin {
+        entity.Role = user.RoleAdmin
+        s.repo.Update(ctx, entity)
+    }
+
+    token, err := s.generateToken(entity.ID, entity.Role)
     if err != nil {
         return user.User{}, "", err
     }
@@ -102,13 +120,18 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (user.U
     return entity, token, nil
 }
 
-func (s *AuthService) generateToken(userID string) (string, error) {
+func (s *AuthService) generateToken(userID, role string) (string, error) {
     if len(s.jwtSecret) == 0 {
         return "", errors.New("missing jwt secret")
     }
 
+    if role == "" {
+        role = user.RoleUser
+    }
+
     claims := jwt.MapClaims{
         "userId": userID,
+        "role":   role,
         "exp":    time.Now().Add(s.tokenTTL).Unix(),
         "iat":    time.Now().Unix(),
     }

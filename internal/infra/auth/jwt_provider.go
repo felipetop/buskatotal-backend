@@ -38,5 +38,10 @@ func (p *JWTProvider) Authenticate(ctx context.Context, token string) (domain.Re
         return domain.Result{}, errors.New("userId claim missing")
     }
 
-    return domain.Result{UserID: userID}, nil
+    role, _ := claims["role"].(string)
+    if role == "" {
+        role = "user"
+    }
+
+    return domain.Result{UserID: userID, Role: role}, nil
 }

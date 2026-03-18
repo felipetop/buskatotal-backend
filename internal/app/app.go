@@ -75,10 +75,13 @@ func Run() error {
         infovistService := NewInfovistService(infovistClient, userRepo, inspRepo, 3096, 0)
         infovistHandler := httpinterfaces.NewInfovistHandler(infovistService)
 
+        adminService := NewAdminService(userRepo)
+        adminHandler := httpinterfaces.NewAdminHandler(adminService)
+
         userHandler := httpinterfaces.NewUserHandler(userService)
         authHandler := httpinterfaces.NewAuthHandler(authService)
         catalogHandler := httpinterfaces.NewCatalogHandler(cfg.CatalogMarkup)
-        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware, catalogHandler, infovistHandler)
+        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware, catalogHandler, infovistHandler, adminHandler)
     } else {
         client, err := firestore.NewClient(cfg.FirebaseProjectID)
         if err != nil {
@@ -103,10 +106,13 @@ func Run() error {
 
         go startReconciliationWorker(paymentService)
 
+        adminService := NewAdminService(userRepo)
+        adminHandler := httpinterfaces.NewAdminHandler(adminService)
+
         userHandler := httpinterfaces.NewUserHandler(userService)
         authHandler := httpinterfaces.NewAuthHandler(authService)
         catalogHandler := httpinterfaces.NewCatalogHandler(cfg.CatalogMarkup)
-        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware, catalogHandler, infovistHandler)
+        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware, catalogHandler, infovistHandler, adminHandler)
     }
 
     addr := fmt.Sprintf(":%s", cfg.Port)

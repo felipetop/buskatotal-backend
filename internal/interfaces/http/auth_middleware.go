@@ -10,6 +10,7 @@ import (
 )
 
 const authUserIDKey = "authUserID"
+const authUserRoleKey = "authUserRole"
 
 type AuthMiddleware struct {
     provider auth.Provider
@@ -44,6 +45,7 @@ func (m *AuthMiddleware) Handler() gin.HandlerFunc {
         }
 
         c.Set(authUserIDKey, result.UserID)
+        c.Set(authUserRoleKey, result.Role)
         c.Next()
     }
 }
@@ -55,4 +57,28 @@ func GetAuthUserID(c *gin.Context) (string, bool) {
     }
     userID, ok := value.(string)
     return userID, ok
+}
+
+func GetAuthUserRole(c *gin.Context) string {
+    value, ok := c.Get(authUserRoleKey)
+    if !ok {
+        return "user"
+    }
+    role, ok := value.(string)
+    if !ok {
+        return "user"
+    }
+    return role
+}
+
+// AdminOnly returns a middleware that rejects non-admin users.
+func AdminOnly() gin.HandlerFunc {
+    return func(c *gin.Context) {
+        role := GetAuthUserRole(c)
+        if role != "admin" {
+            c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "admin access required"})
+            return
+        }
+        c.Next()
+    }
 }
