@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"buskatotal-backend/internal/domain/inspection"
 	"buskatotal-backend/internal/infra/infovist"
 )
 
@@ -14,6 +15,7 @@ type InfovistService interface {
 	ViewInspection(ctx context.Context, userID, protocol string) (*infovist.ViewInspectionResponse, error)
 	GetReportV1(ctx context.Context, userID, protocol string) (*infovist.ReportResponse, error)
 	GetReportV2(ctx context.Context, userID, protocol string) (*infovist.ReportV2Response, error)
+	ListInspections(ctx context.Context, userID string) ([]inspection.Inspection, error)
 }
 
 type InfovistHandler struct {
@@ -107,6 +109,26 @@ func (h *InfovistHandler) GetReportV2(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *InfovistHandler) ListInspections(c *gin.Context) {
+	userID, ok := GetAuthUserID(c)
+	if !ok || userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing authenticated user"})
+		return
+	}
+
+	result, err := h.service.ListInspections(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if result == nil {
+		result = []inspection.Inspection{}
 	}
 
 	c.JSON(http.StatusOK, result)

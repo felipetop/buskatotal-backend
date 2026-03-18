@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"buskatotal-backend/internal/domain/inspection"
 	"buskatotal-backend/internal/domain/user"
 	"buskatotal-backend/internal/infra/infovist"
 )
@@ -13,17 +14,19 @@ import (
 type InfovistService struct {
 	client               *infovist.Client
 	userRepo             user.Repository
-	costCreateInspection int64 // VISTORIA DIGITAL: custo de venda em centavos
-	costReport           int64 // INFOVIST: custo de venda em centavos
+	inspRepo             inspection.Repository
+	costCreateInspection int64
+	costReport           int64
 	mu                   sync.Mutex
 	token                string
 	expiry               time.Time
 }
 
-func NewInfovistService(client *infovist.Client, userRepo user.Repository, costCreateInspection, costReport int64) *InfovistService {
+func NewInfovistService(client *infovist.Client, userRepo user.Repository, inspRepo inspection.Repository, costCreateInspection, costReport int64) *InfovistService {
 	return &InfovistService{
 		client:               client,
 		userRepo:             userRepo,
+		inspRepo:             inspRepo,
 		costCreateInspection: costCreateInspection,
 		costReport:           costReport,
 	}
@@ -59,6 +62,18 @@ func (s *InfovistService) CreateInspection(ctx context.Context, userID string, i
 		return nil, err
 	}
 
+	// Save to local history
+	s.inspRepo.Create(ctx, inspection.Inspection{
+		UserID:    userID,
+		Protocol:  result.Protocol,
+		Customer:  input.Customer,
+		Cellphone: input.Cellphone,
+		Plate:     input.Plate,
+		Chassis:   input.Chassis,
+		Notes:     input.Notes,
+		Status:    "AWAITING_TO_SEND",
+	})
+
 	return result, nil
 }
 
@@ -75,7 +90,21 @@ func (s *InfovistService) ViewInspection(ctx context.Context, userID, protocol s
 		return nil, err
 	}
 
-	return s.client.ViewInspection(ctx, token, protocol)
+	resp, err := s.client.ViewInspection(ctx, token, protocol)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update local status if we have this inspection
+	if len(resp.Statuses) > 0 {
+		latest := resp.Statuses[len(resp.Statuses)-1]
+		if insp, findErr := s.inspRepo.GetByProtocol(ctx, protocol); findErr == nil {
+			insp.Status = latest.StatusEnum
+			s.inspRepo.Update(ctx, insp)
+		}
+	}
+
+	return resp, nil
 }
 
 func (s *InfovistService) GetReportV1(ctx context.Context, userID, protocol string) (*infovist.ReportResponse, error) {
@@ -86,23 +115,12 @@ func (s *InfovistService) GetReportV1(ctx context.Context, userID, protocol stri
 		return nil, errors.New("protocol is required")
 	}
 
-	if err := s.userRepo.DebitBalance(ctx, userID, s.costReport); err != nil {
-		return nil, err
-	}
-
 	token, err := s.getToken(ctx)
 	if err != nil {
-		s.userRepo.CreditBalance(ctx, userID, s.costReport)
 		return nil, err
 	}
 
-	result, err := s.client.GetReportV1(ctx, token, protocol)
-	if err != nil {
-		s.userRepo.CreditBalance(ctx, userID, s.costReport)
-		return nil, err
-	}
-
-	return result, nil
+	return s.client.GetReportV1(ctx, token, protocol)
 }
 
 func (s *InfovistService) GetReportV2(ctx context.Context, userID, protocol string) (*infovist.ReportV2Response, error) {
@@ -113,23 +131,19 @@ func (s *InfovistService) GetReportV2(ctx context.Context, userID, protocol stri
 		return nil, errors.New("protocol is required")
 	}
 
-	if err := s.userRepo.DebitBalance(ctx, userID, s.costReport); err != nil {
-		return nil, err
-	}
-
 	token, err := s.getToken(ctx)
 	if err != nil {
-		s.userRepo.CreditBalance(ctx, userID, s.costReport)
 		return nil, err
 	}
 
-	result, err := s.client.GetReportV2(ctx, token, protocol)
-	if err != nil {
-		s.userRepo.CreditBalance(ctx, userID, s.costReport)
-		return nil, err
-	}
+	return s.client.GetReportV2(ctx, token, protocol)
+}
 
-	return result, nil
+func (s *InfovistService) ListInspections(ctx context.Context, userID string) ([]inspection.Inspection, error) {
+	if userID == "" {
+		return nil, errors.New("user id is required")
+	}
+	return s.inspRepo.GetByUserID(ctx, userID)
 }
 
 func (s *InfovistService) getToken(ctx context.Context) (string, error) {

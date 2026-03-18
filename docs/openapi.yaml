@@ -392,6 +392,37 @@ paths:
   # ── Vistorias ─────────────────────────────────────────────────────────────────
 
   /vistorias:
+    get:
+      summary: Listar histórico de vistorias
+      tags: [Vistorias]
+      description: |
+        Retorna todas as vistorias do usuário autenticado, ordenadas por data (mais recente primeiro).
+        **Sem custo** — dados locais, sem chamada ao provedor externo.
+      parameters:
+        - $ref: "#/components/parameters/MockAuthHeader"
+        - $ref: "#/components/parameters/JWTAuthHeader"
+      responses:
+        "200":
+          description: Lista de vistorias do usuário
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InspectionHistory"
+              example:
+                - id: "550e8400-e29b-41d4-a716-446655440000"
+                  user_id: "user-123"
+                  protocol: "18de85c0"
+                  customer: "João Silva"
+                  cellphone: "11999999999"
+                  plate: "ABC1234"
+                  status: "MAKE_REPORT"
+                  created_at: "2026-03-18T10:00:00Z"
+                  updated_at: "2026-03-18T10:30:00Z"
+        "401":
+          description: Não autenticado
+
     post:
       summary: Criar vistoria digital
       tags: [Vistorias]
@@ -399,7 +430,7 @@ paths:
         Cria uma nova vistoria digital. O cliente receberá um link
         por WhatsApp/SMS para enviar as fotos do veículo.
 
-        **Custo:** R$103,56 (VISTORIA DIGITAL) — debitado do saldo do usuário.
+        **Custo:** R$30,96 (INFOVIST) — debitado do saldo do usuário.
 
         Requer `plate` ou `chassis` (pelo menos um).
       parameters:
@@ -426,7 +457,7 @@ paths:
               example:
                 protocol: "18de85c0"
         "400":
-          description: Saldo insuficiente, dados inválidos ou erro no provedor
+          description: Saldo insuficiente (R$30,96), dados inválidos ou erro no provedor
         "401":
           description: Não autenticado
 
@@ -470,7 +501,7 @@ paths:
         Se o módulo de IA estiver ativo, inclui dados de detecção de danos
         por imagem nos dados do evento.
 
-        **Custo:** R$30,96 — debitado do saldo do usuário.
+        **Sem custo** — incluído na vistoria.
       parameters:
         - name: protocol
           in: path
@@ -489,7 +520,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/RelatorioV1Response"
         "400":
-          description: Saldo insuficiente ou erro no provedor
+          description: Erro no provedor
         "401":
           description: Não autenticado
 
@@ -504,7 +535,7 @@ paths:
         - assessment_status e assessment_status_enum (resultado da avaliação)
         - APIs consultadas (FIPE, leilão, roubo/furto, gravame, renajud, etc)
 
-        **Custo:** R$30,96 — debitado do saldo do usuário.
+        **Sem custo** — incluído na vistoria.
       parameters:
         - name: protocol
           in: path
@@ -523,7 +554,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/RelatorioCompletoResponse"
         "400":
-          description: Saldo insuficiente ou erro no provedor
+          description: Erro no provedor
         "401":
           description: Não autenticado
 
@@ -962,6 +993,41 @@ components:
               type: string
               format: uri
               description: URL do relatório em PDF
+
+    InspectionHistory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+        protocol:
+          type: string
+          example: "18de85c0"
+        customer:
+          type: string
+          example: "João Silva"
+        cellphone:
+          type: string
+          example: "11999999999"
+        plate:
+          type: string
+          example: "ABC1234"
+        chassis:
+          type: string
+        notes:
+          type: string
+        status:
+          type: string
+          description: "Último status conhecido (ex: AWAITING_TO_SEND, OPEN, MAKE_REPORT, APPROVED)"
+          example: "AWAITING_TO_SEND"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
 
     # ── Consultas Veiculares ─────────────────────────────────────────────────
     AgregadosBResponse:

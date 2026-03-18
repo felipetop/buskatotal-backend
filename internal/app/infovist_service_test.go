@@ -18,6 +18,7 @@ import (
 func setupInfovistTest(t *testing.T, balance int64) (*InfovistService, *memory.UserRepository, user.User) {
 	t.Helper()
 	repo := memory.NewUserRepository()
+	inspRepo := memory.NewInspectionRepository()
 	u, err := repo.Create(context.Background(), user.User{
 		Name:    "Test User",
 		Email:   "test@test.com",
@@ -31,14 +32,14 @@ func setupInfovistTest(t *testing.T, balance int64) (*InfovistService, *memory.U
 	// The service will fail at getToken, but we test debit/rollback behavior.
 	client := infovist.NewClient("http://localhost:9999", "test@test.com", "password", "token")
 
-	svc := NewInfovistService(client, repo, 10356, 3096)
+	svc := NewInfovistService(client, repo, inspRepo, 3096, 0)
 	return svc, repo, u
 }
 
 // TestCreateInspection_InsufficientBalance verifies that creating an inspection
 // with insufficient balance returns an error and does not change the balance.
 func TestCreateInspection_InsufficientBalance(t *testing.T) {
-	svc, repo, u := setupInfovistTest(t, 5000) // has 5000, needs 10356
+	svc, repo, u := setupInfovistTest(t, 1000) // has 1000, needs 3096
 
 	_, err := svc.CreateInspection(context.Background(), u.ID, infovist.CreateInspectionRequest{
 		Customer:  "John",
@@ -55,15 +56,15 @@ func TestCreateInspection_InsufficientBalance(t *testing.T) {
 
 	// Balance must be unchanged
 	updated, _ := repo.GetByID(context.Background(), u.ID)
-	if updated.Balance != 5000 {
-		t.Fatalf("expected balance 5000, got %d", updated.Balance)
+	if updated.Balance != 1000 {
+		t.Fatalf("expected balance 1000, got %d", updated.Balance)
 	}
 }
 
 // TestCreateInspection_RollbackOnAPIFailure verifies that if the external API
 // call fails, the debited balance is refunded (Fix 5).
 func TestCreateInspection_RollbackOnAPIFailure(t *testing.T) {
-	svc, repo, u := setupInfovistTest(t, 20000) // enough balance
+	svc, repo, u := setupInfovistTest(t, 5000) // enough balance
 
 	// The client points to localhost:9999 which won't respond, so CreateInspection
 	// will debit, try to authenticate, fail, and should rollback.
@@ -82,41 +83,39 @@ func TestCreateInspection_RollbackOnAPIFailure(t *testing.T) {
 
 	// Balance must be restored (rollback)
 	updated, _ := repo.GetByID(context.Background(), u.ID)
-	if updated.Balance != 20000 {
-		t.Fatalf("expected balance restored to 20000, got %d (rollback failed)", updated.Balance)
+	if updated.Balance != 5000 {
+		t.Fatalf("expected balance restored to 5000, got %d (rollback failed)", updated.Balance)
 	}
 }
 
-// TestGetReportV1_InsufficientBalance verifies report access with no balance.
-func TestGetReportV1_InsufficientBalance(t *testing.T) {
-	svc, repo, u := setupInfovistTest(t, 1000) // has 1000, needs 3096
-
-	_, err := svc.GetReportV1(context.Background(), u.ID, "abc12345")
-	if err == nil {
-		t.Fatal("expected error for insufficient balance")
-	}
-
-	updated, _ := repo.GetByID(context.Background(), u.ID)
-	if updated.Balance != 1000 {
-		t.Fatalf("expected balance 1000, got %d", updated.Balance)
-	}
-}
-
-// TestGetReportV2_RollbackOnAPIFailure verifies rollback for report v2.
-func TestGetReportV2_RollbackOnAPIFailure(t *testing.T) {
-	svc, repo, u := setupInfovistTest(t, 5000) // enough for report (3096)
+// TestGetReportV1_NoCharge verifies that fetching a report does not debit balance.
+func TestGetReportV1_NoCharge(t *testing.T) {
+	svc, repo, u := setupInfovistTest(t, 100) // minimal balance
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	_, err := svc.GetReportV2(ctx, u.ID, "abc12345")
-	if err == nil {
-		t.Fatal("expected error from failed API call")
-	}
+	// Will fail at API call, but should NOT debit anything
+	_, _ = svc.GetReportV1(ctx, u.ID, "abc12345")
 
 	updated, _ := repo.GetByID(context.Background(), u.ID)
-	if updated.Balance != 5000 {
-		t.Fatalf("expected balance restored to 5000, got %d (rollback failed)", updated.Balance)
+	if updated.Balance != 100 {
+		t.Fatalf("expected balance unchanged at 100, got %d (report should be free)", updated.Balance)
+	}
+}
+
+// TestGetReportV2_NoCharge verifies that fetching a report v2 does not debit balance.
+func TestGetReportV2_NoCharge(t *testing.T) {
+	svc, repo, u := setupInfovistTest(t, 100) // minimal balance
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	_, _ = svc.GetReportV2(ctx, u.ID, "abc12345")
+
+	updated, _ := repo.GetByID(context.Background(), u.ID)
+	if updated.Balance != 100 {
+		t.Fatalf("expected balance unchanged at 100, got %d (report should be free)", updated.Balance)
 	}
 }
 
@@ -173,11 +172,12 @@ func TestCreateInspection_ConcurrentRace(t *testing.T) {
 	u, _ := repo.Create(context.Background(), user.User{
 		Name:    "Test",
 		Email:   "test@test.com",
-		Balance: 10356, // exactly 1 inspection
+		Balance: 3096, // exactly 1 inspection
 	})
 
+	inspRepo := memory.NewInspectionRepository()
 	client := infovist.NewClient("http://localhost:9999", "e", "p", "t")
-	svc := NewInfovistService(client, repo, 10356, 3096)
+	svc := NewInfovistService(client, repo, inspRepo, 3096, 0)
 
 	const goroutines = 20
 	var wg sync.WaitGroup
@@ -209,7 +209,7 @@ func TestCreateInspection_ConcurrentRace(t *testing.T) {
 	// After all goroutines complete (with rollbacks), balance should be back to original
 	// since the API calls all fail.
 	updated, _ := repo.GetByID(context.Background(), u.ID)
-	if updated.Balance != 10356 {
-		t.Fatalf("expected balance restored to 10356 after rollbacks, got %d", updated.Balance)
+	if updated.Balance != 3096 {
+		t.Fatalf("expected balance restored to 3096 after rollbacks, got %d", updated.Balance)
 	}
 }

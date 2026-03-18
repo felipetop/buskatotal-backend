@@ -62,6 +62,7 @@ func Run() error {
     if cfg.UseMockDB || cfg.FirebaseProjectID == "" {
         userRepo := memory.NewUserRepository()
         orderRepo := memory.NewOrderRepository()
+        inspRepo := memory.NewInspectionRepository()
         userService := NewUserService(userRepo)
         authService := NewAuthService(userRepo, cfg.AuthJWTSecret, 24*time.Hour)
         infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
@@ -71,7 +72,7 @@ func Run() error {
         paymentHandler := httpinterfaces.NewPaymentHandler(paymentService, isMockPayment)
 
         infovistClient := infovist.NewClient(cfg.InfovistBaseURL, cfg.InfovistEmail, cfg.InfovistPassword, cfg.InfovistAPIToken)
-        infovistService := NewInfovistService(infovistClient, userRepo, 10356, 3096)
+        infovistService := NewInfovistService(infovistClient, userRepo, inspRepo, 3096, 0)
         infovistHandler := httpinterfaces.NewInfovistHandler(infovistService)
 
         userHandler := httpinterfaces.NewUserHandler(userService)
@@ -87,6 +88,7 @@ func Run() error {
 
         userRepo := firestore.NewUserRepository(client)
         orderRepo := firestore.NewOrderRepository(client)
+        inspRepo := firestore.NewInspectionRepository(client)
         userService := NewUserService(userRepo)
         authService := NewAuthService(userRepo, cfg.AuthJWTSecret, 24*time.Hour)
         infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
@@ -96,7 +98,7 @@ func Run() error {
         paymentHandler := httpinterfaces.NewPaymentHandler(paymentService, isMockPayment)
 
         infovistClient := infovist.NewClient(cfg.InfovistBaseURL, cfg.InfovistEmail, cfg.InfovistPassword, cfg.InfovistAPIToken)
-        infovistService := NewInfovistService(infovistClient, userRepo, 10356, 3096)
+        infovistService := NewInfovistService(infovistClient, userRepo, inspRepo, 3096, 0)
         infovistHandler := httpinterfaces.NewInfovistHandler(infovistService)
 
         go startReconciliationWorker(paymentService)

@@ -70,6 +70,7 @@ func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, authHandler *A
             vistorias.Use(authMiddleware.Handler())
         }
         {
+            vistorias.GET("", infovistHandler.ListInspections)
             vistorias.POST("", infovistHandler.CreateInspection)
             vistorias.GET("/:protocol", infovistHandler.ViewInspection)
             vistorias.GET("/:protocol/relatorio", infovistHandler.GetReportV1)
