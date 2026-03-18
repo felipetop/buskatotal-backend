@@ -124,17 +124,29 @@ func (s *PaymentService) ProcessWebhook(ctx context.Context, referenceID string)
 	}
 
 	if status == payment.StatusPaid {
-		userEntity, err := s.userRepo.GetByID(ctx, order.UserID)
-		if err != nil {
-			return fmt.Errorf("get user: %w", err)
-		}
-		userEntity.Balance += order.AmountCents
-		if _, err := s.userRepo.Update(ctx, userEntity); err != nil {
+		if err := s.userRepo.CreditBalance(ctx, order.UserID, order.AmountCents); err != nil {
 			return fmt.Errorf("credit balance: %w", err)
 		}
 	}
 
 	return nil
+}
+
+// ProcessWebhookForUser is like ProcessWebhook but verifies the order belongs to the user.
+func (s *PaymentService) ProcessWebhookForUser(ctx context.Context, referenceID, userID string) error {
+	if referenceID == "" {
+		return errors.New("referenceId is required")
+	}
+
+	order, err := s.orderRepo.GetByReferenceID(ctx, referenceID)
+	if err != nil {
+		return fmt.Errorf("order not found: %w", err)
+	}
+	if order.UserID != userID {
+		return errors.New("order does not belong to this user")
+	}
+
+	return s.ProcessWebhook(ctx, referenceID)
 }
 
 // ReconcileOrders checks all pending orders against PicPay and credits any that are paid.
@@ -175,12 +187,7 @@ func (s *PaymentService) Credit(ctx context.Context, userID string, amount int64
 		return payment.Receipt{}, err
 	}
 
-	userEntity, err := s.userRepo.GetByID(ctx, userID)
-	if err != nil {
-		return payment.Receipt{}, err
-	}
-	userEntity.Balance += amount
-	if _, err := s.userRepo.Update(ctx, userEntity); err != nil {
+	if err := s.userRepo.CreditBalance(ctx, userID, amount); err != nil {
 		return payment.Receipt{}, err
 	}
 

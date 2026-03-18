@@ -88,3 +88,34 @@ func (r *UserRepository) Delete(ctx context.Context, id string) error {
     delete(r.items, id)
     return nil
 }
+
+func (r *UserRepository) DebitBalance(ctx context.Context, id string, amount int64) error {
+    r.mu.Lock()
+    defer r.mu.Unlock()
+
+    entity, ok := r.items[id]
+    if !ok {
+        return errors.New("user not found")
+    }
+    if entity.Balance < amount {
+        return user.ErrInsufficientBalance
+    }
+    entity.Balance -= amount
+    entity.UpdatedAt = time.Now()
+    r.items[id] = entity
+    return nil
+}
+
+func (r *UserRepository) CreditBalance(ctx context.Context, id string, amount int64) error {
+    r.mu.Lock()
+    defer r.mu.Unlock()
+
+    entity, ok := r.items[id]
+    if !ok {
+        return errors.New("user not found")
+    }
+    entity.Balance += amount
+    entity.UpdatedAt = time.Now()
+    r.items[id] = entity
+    return nil
+}

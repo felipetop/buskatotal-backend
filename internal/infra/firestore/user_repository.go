@@ -6,6 +6,8 @@ import (
     "time"
 
     "cloud.google.com/go/firestore"
+    "google.golang.org/grpc/codes"
+    "google.golang.org/grpc/status"
 
     "buskatotal-backend/internal/domain/user"
 )
@@ -87,4 +89,47 @@ func (r *UserRepository) Update(ctx context.Context, entity user.User) (user.Use
 func (r *UserRepository) Delete(ctx context.Context, id string) error {
     _, err := r.client.Collection("users").Doc(id).Delete(ctx)
     return err
+}
+
+func (r *UserRepository) DebitBalance(ctx context.Context, id string, amount int64) error {
+    ref := r.client.Collection("users").Doc(id)
+    return r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+        snap, err := tx.Get(ref)
+        if err != nil {
+            if status.Code(err) == codes.NotFound {
+                return errors.New("user not found")
+            }
+            return err
+        }
+        var entity user.User
+        if err := snap.DataTo(&entity); err != nil {
+            return err
+        }
+        if entity.Balance < amount {
+            return user.ErrInsufficientBalance
+        }
+        entity.Balance -= amount
+        entity.UpdatedAt = time.Now()
+        return tx.Set(ref, entity)
+    })
+}
+
+func (r *UserRepository) CreditBalance(ctx context.Context, id string, amount int64) error {
+    ref := r.client.Collection("users").Doc(id)
+    return r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+        snap, err := tx.Get(ref)
+        if err != nil {
+            if status.Code(err) == codes.NotFound {
+                return errors.New("user not found")
+            }
+            return err
+        }
+        var entity user.User
+        if err := snap.DataTo(&entity); err != nil {
+            return err
+        }
+        entity.Balance += amount
+        entity.UpdatedAt = time.Now()
+        return tx.Set(ref, entity)
+    })
 }

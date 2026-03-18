@@ -13,15 +13,17 @@ type PaymentService interface {
 	Credit(ctx context.Context, userID string, amount int64) (payment.Receipt, error)
 	CreateOrder(ctx context.Context, userID string, amountCents int64, buyer payment.Buyer, returnURL string) (payment.Order, error)
 	ProcessWebhook(ctx context.Context, referenceID string) error
+	ProcessWebhookForUser(ctx context.Context, referenceID, userID string) error
 	ListOrders(ctx context.Context, userID string) ([]payment.Order, error)
 }
 
 type PaymentHandler struct {
-	service PaymentService
+	service    PaymentService
+	allowCredit bool // only true in mock/dev mode
 }
 
-func NewPaymentHandler(service PaymentService) *PaymentHandler {
-	return &PaymentHandler{service: service}
+func NewPaymentHandler(service PaymentService, allowCredit bool) *PaymentHandler {
+	return &PaymentHandler{service: service, allowCredit: allowCredit}
 }
 
 // ── POST /payments/users/:id/credit ──────────────────────────────────────────
@@ -32,6 +34,11 @@ type paymentCreditInput struct {
 }
 
 func (h *PaymentHandler) Credit(c *gin.Context) {
+	if !h.allowCredit {
+		c.JSON(http.StatusForbidden, gin.H{"error": "direct credit is disabled in production"})
+		return
+	}
+
 	authUserID, ok := GetAuthUserID(c)
 	if !ok || authUserID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing authenticated user"})
@@ -172,13 +179,19 @@ func (h *PaymentHandler) Webhook(c *gin.Context) {
 // Called by the frontend while polling for payment confirmation.
 
 func (h *PaymentHandler) SyncOrder(c *gin.Context) {
+	authUserID, ok := GetAuthUserID(c)
+	if !ok || authUserID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing authenticated user"})
+		return
+	}
+
 	referenceID := c.Param("reference_id")
 	if referenceID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "reference_id is required"})
 		return
 	}
 
-	if err := h.service.ProcessWebhook(c.Request.Context(), referenceID); err != nil {
+	if err := h.service.ProcessWebhookForUser(c.Request.Context(), referenceID, authUserID); err != nil {
 		c.JSON(http.StatusOK, gin.H{"ok": false, "error": err.Error()})
 		return
 	}

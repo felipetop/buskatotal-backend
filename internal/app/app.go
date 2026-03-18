@@ -52,7 +52,8 @@ func Run() error {
 
     // Select payment provider: use PicPay when a token is configured, mock otherwise.
     var paymentProvider payment.Provider
-    if cfg.PicPayClientID != "" && cfg.PicPayClientSecret != "" {
+    isMockPayment := cfg.PicPayClientID == "" || cfg.PicPayClientSecret == ""
+    if !isMockPayment {
         paymentProvider = paymentinfra.NewPicPayProvider(cfg.PicPayClientID, cfg.PicPayClientSecret)
     } else {
         paymentProvider = paymentinfra.NewMockProvider()
@@ -67,7 +68,7 @@ func Run() error {
         infocarService := NewInfocarService(infocarClient, userRepo, 150)
         infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
         paymentService := NewPaymentService(paymentProvider, orderRepo, userRepo, cfg.AppBaseURL)
-        paymentHandler := httpinterfaces.NewPaymentHandler(paymentService)
+        paymentHandler := httpinterfaces.NewPaymentHandler(paymentService, isMockPayment)
 
         infovistClient := infovist.NewClient(cfg.InfovistBaseURL, cfg.InfovistEmail, cfg.InfovistPassword, cfg.InfovistAPIToken)
         infovistService := NewInfovistService(infovistClient, userRepo, 10356, 3096)
@@ -92,7 +93,7 @@ func Run() error {
         infocarService := NewInfocarService(infocarClient, userRepo, 150)
         infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
         paymentService := NewPaymentService(paymentProvider, orderRepo, userRepo, cfg.AppBaseURL)
-        paymentHandler := httpinterfaces.NewPaymentHandler(paymentService)
+        paymentHandler := httpinterfaces.NewPaymentHandler(paymentService, isMockPayment)
 
         infovistClient := infovist.NewClient(cfg.InfovistBaseURL, cfg.InfovistEmail, cfg.InfovistPassword, cfg.InfovistAPIToken)
         infovistService := NewInfovistService(infovistClient, userRepo, 10356, 3096)
