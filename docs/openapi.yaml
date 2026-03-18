@@ -114,36 +114,6 @@ paths:
 
   # ── Usuários ─────────────────────────────────────────────────────────────────
 
-  /users:
-    post:
-      summary: Criar usuário (admin)
-      tags: [Usuários]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UserInput"
-      responses:
-        "201":
-          description: Criado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-    get:
-      summary: Listar usuários
-      tags: [Usuários]
-      responses:
-        "200":
-          description: Lista de usuários
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/User"
-
   /users/{id}/balance:
     get:
       summary: Consultar saldo do usuário
@@ -173,48 +143,6 @@ paths:
           description: Não autenticado
         "403":
           description: Tentativa de consultar saldo de outro usuário
-
-  /users/{id}:
-    get:
-      summary: Buscar usuário por ID
-      tags: [Usuários]
-      parameters:
-        - $ref: "#/components/parameters/UserIdPath"
-      responses:
-        "200":
-          description: Usuário
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-        "404":
-          description: Não encontrado
-    put:
-      summary: Atualizar usuário
-      tags: [Usuários]
-      parameters:
-        - $ref: "#/components/parameters/UserIdPath"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UserInput"
-      responses:
-        "200":
-          description: Atualizado
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-    delete:
-      summary: Remover usuário
-      tags: [Usuários]
-      parameters:
-        - $ref: "#/components/parameters/UserIdPath"
-      responses:
-        "204":
-          description: Sem conteúdo
 
   # ── Pagamentos ───────────────────────────────────────────────────────────────
 

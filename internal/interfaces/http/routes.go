@@ -14,12 +14,6 @@ func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, authHandler *A
 
     users := router.Group("/users")
     {
-        users.POST("", userHandler.Create)
-        users.GET("", userHandler.List)
-        users.GET("/:id", userHandler.GetByID)
-        users.PUT("/:id", userHandler.Update)
-        users.DELETE("/:id", userHandler.Delete)
-        // Balance requires auth — middleware applied inline.
         if authMiddleware != nil {
             users.GET("/:id/balance", authMiddleware.Handler(), userHandler.GetBalance)
         } else {
