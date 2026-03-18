@@ -72,7 +72,8 @@ func Run() error {
         paymentHandler := httpinterfaces.NewPaymentHandler(paymentService, isMockPayment)
 
         infovistClient := infovist.NewClient(cfg.InfovistBaseURL, cfg.InfovistEmail, cfg.InfovistPassword, cfg.InfovistAPIToken)
-        infovistService := NewInfovistService(infovistClient, userRepo, inspRepo, 3096, 0)
+        infovistService := // Custo de venda: INFOVIST (R$10,32) + VISTORIA DIGITAL (R$34,52) = R$44,84 custo × 3x markup = R$134,52 = 13452 centavos
+		NewInfovistService(infovistClient, userRepo, inspRepo, 13452, 0)
         infovistHandler := httpinterfaces.NewInfovistHandler(infovistService)
 
         adminService := NewAdminService(userRepo)
@@ -101,7 +102,8 @@ func Run() error {
         paymentHandler := httpinterfaces.NewPaymentHandler(paymentService, isMockPayment)
 
         infovistClient := infovist.NewClient(cfg.InfovistBaseURL, cfg.InfovistEmail, cfg.InfovistPassword, cfg.InfovistAPIToken)
-        infovistService := NewInfovistService(infovistClient, userRepo, inspRepo, 3096, 0)
+        infovistService := // Custo de venda: INFOVIST (R$10,32) + VISTORIA DIGITAL (R$34,52) = R$44,84 custo × 3x markup = R$134,52 = 13452 centavos
+		NewInfovistService(infovistClient, userRepo, inspRepo, 13452, 0)
         infovistHandler := httpinterfaces.NewInfovistHandler(infovistService)
 
         go startReconciliationWorker(paymentService)

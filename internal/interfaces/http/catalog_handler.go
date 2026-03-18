@@ -48,7 +48,8 @@ var internalCatalog = []internalCategory{
 			{"Índice de risco veicular", "Avaliação completa do histórico com score de risco", 624},
 			{"INFO AQUISIÇÕES", "Histórico de transferências e transações comerciais", 300},
 			{"INFO DÉBITOS INPUT PLACA", "Multas, IPVA e taxas pendentes vinculadas à placa", 230},
-			{"INFOVIST", "Histórico de vistorias e possíveis divergências estruturais", 1032},
+			// Custo combinado: INFOVIST (R$10,32 = 1032) + VISTORIA DIGITAL (R$34,52 = 3452) = R$44,84 = 4484 centavos
+			{"VISTORIA DIGITAL COMPLETA", "Vistoria veicular digital com análise de danos por IA, histórico e relatório completo", 4484},
 			{"LEILÃO ESSENCIAL", "Registro detalhado de participação em leilão e classificação de danos", 520},
 			{"Leilão", "Indicação geral de registro em base de leilões", 876},
 			{"Placa Básica", "Marca, modelo, versão, ano e cor do veículo", 10},
@@ -57,7 +58,6 @@ var internalCatalog = []internalCategory{
 			{"Proprietário placa", "Identificação do proprietário atual registrado", 91},
 			{"Recall", "Campanhas de recall do fabricante", 360},
 			{"HISTÓRICO PROPRIETÁRIO", "Quantidade de donos anteriores e tipo de uso", 1300},
-			{"VISTORIA DIGITAL", "Avaliação por imagens com análise de danos", 3452},
 			{"WORKFLOW DE AVALIAÇÃO", "Dossiê completo automatizado com score e alertas", 953},
 			{"Vip Car", "Relatório completo combinando múltiplas verificações veiculares", 3120},
 		},
