@@ -97,23 +97,24 @@ func (c *Client) Authenticate(ctx context.Context) (*AuthResponse, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusUnprocessableEntity {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("infovist auth validation error: %s", string(body))
-	}
+	body, _ := io.ReadAll(resp.Body)
+
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("infovist auth failed: status %d", resp.StatusCode)
+		return nil, fmt.Errorf("infovist auth failed (status %d): %s", resp.StatusCode, string(body))
 	}
 
-	var authResp AuthResponse
-	if err := json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
-		return nil, fmt.Errorf("infovist auth decode: %w", err)
+	// Infovist wraps the response in a "data" field
+	var wrapper struct {
+		Data AuthResponse `json:"data"`
 	}
-	if authResp.AccessToken == "" {
-		return nil, errors.New("infovist auth response missing access_token")
+	if err := json.Unmarshal(body, &wrapper); err != nil {
+		return nil, fmt.Errorf("infovist auth decode error: %w (body: %s)", err, string(body))
+	}
+	if wrapper.Data.AccessToken == "" {
+		return nil, fmt.Errorf("infovist auth response missing access_token (body: %s)", string(body))
 	}
 
-	return &authResp, nil
+	return &wrapper.Data, nil
 }
 
 func (c *Client) CreateInspection(ctx context.Context, token string, input CreateInspectionRequest) (*CreateInspectionResponse, error) {
