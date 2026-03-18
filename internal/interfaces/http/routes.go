@@ -60,7 +60,7 @@ func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, authHandler *A
             consultas.Use(authMiddleware.Handler())
         }
         {
-            consultas.GET("/veicular/:tipo/:valor", infocarHandler.GetAgregadosB)
+            consultas.GET("/veicular/agregados/:tipo/:valor", infocarHandler.GetAgregadosB)
         }
     }
 

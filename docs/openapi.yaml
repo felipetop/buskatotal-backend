@@ -529,7 +529,7 @@ paths:
 
   # ── Consultas Veiculares ────────────────────────────────────────────────────
 
-  /consultas/veicular/{tipo}/{valor}:
+  /consultas/veicular/agregados/{tipo}/{valor}:
     get:
       summary: Consulta veicular
       tags: [Consultas]
