@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: BuskaTotal Backend API
   description: |
-    API para gestão de usuários, consultas Infocar (Agregados B), vistorias digitais Infovist e pagamentos via PicPay.
+    API para gestão de usuários, consultas veiculares Infocar (9 produtos), vistorias digitais Infovist e pagamentos via PicPay.
 
     ## Autenticação
     - `AUTH_MODE=mock` (local): use o header `X-User-Id` com o ID do usuário.
@@ -490,11 +490,13 @@ paths:
 
   /consultas/veicular/agregados/{tipo}/{valor}:
     get:
-      summary: Consulta veicular
+      summary: "Agregados B (rota legada)"
       tags: [Consultas]
       description: |
-        Consulta dados de emplacamento (Agregados B). Requer autenticação.
-        Debita 1 unidade do saldo do usuário.
+        Consulta dados de emplacamento (Agregados B). Rota legada mantida por compatibilidade.
+        Use preferencialmente a rota genérica `/consultas/veicular/{produto}/{tipo}/{valor}`.
+
+        **Custo:** R$1,50 por consulta.
       parameters:
         - name: tipo
           in: path
@@ -502,10 +504,6 @@ paths:
           schema:
             type: string
             enum: [placa, chassi, motor]
-          description: |
-            - `placa` — consulta por placa veicular (ex: ABC1234)
-            - `chassi` — consulta por chassi (17 caracteres)
-            - `motor` — consulta por número do motor
           example: placa
         - name: valor
           in: path
@@ -521,9 +519,94 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AgregadosBResponse"
+                $ref: "#/components/schemas/InfocarProductResponse"
         "400":
           description: Saldo insuficiente ou parâmetros inválidos
+        "401":
+          description: Não autenticado
+
+  /consultas/veicular/{produto}/{tipo}/{valor}:
+    get:
+      summary: Consulta veicular genérica (Infocar)
+      tags: [Consultas]
+      description: |
+        Consulta qualquer produto veicular da Infocar. O valor é debitado do saldo do usuário.
+
+        ## Produtos disponíveis
+
+        | Chave (`produto`) | Nome | Preço | Tipos aceitos | API Infocar |
+        |---|---|---|---|---|
+        | `agregados` | AGREGADOS B | R$1,50 | placa, chassi, motor | v1.0/AgregadosB |
+        | `base-estadual` | BASE ESTADUAL B | R$17,70 | placa, chassi | v1.0/BaseEstadualB |
+        | `base-nacional` | BASE NACIONAL B | R$18,00 | placa, chassi | v1.0/BaseNacionalB |
+        | `gravame` | GRAVAME B | R$24,00 | placa, chassi | v1.0/GravameB |
+        | `roubo-furto` | HIST. ROUBO E FURTO B | R$15,60 | placa, chassi | v1.0/HistoricoRouboFurtoB |
+        | `leilao` | LEILÃO ESSENCIAL | R$15,60 | placa, chassi | v1.0/LeilaoEssencial |
+        | `aquisicoes` | INFO AQUISIÇÕES | R$9,00 | placa | v2.0/InfoAquisicoes |
+        | `debitos` | INFO DÉBITOS | R$6,90 | placa | v4.0/InfoDebitos |
+        | `proprietario` | HIST. PROPRIETÁRIO | R$39,00 | placa, chassi | v1.0/HistoricoProprietarioA |
+
+        ## Fórmula de preço
+        `preço venda = custo × 3` (markup 200%). Os preços de custo estão em `buskatotal.md`.
+
+        ## Comportamento
+        1. Valida o tipo de consulta (placa/chassi/motor) conforme produto
+        2. Debita o saldo do usuário
+        3. Gera/reutiliza token Infocar (cache de 8h)
+        4. Consulta a API Infocar
+        5. Em caso de erro na API, faz rollback do saldo
+
+        ## Exemplos
+        ```
+        GET /consultas/veicular/gravame/placa/ABC1234
+        GET /consultas/veicular/base-estadual/chassi/9BWKA05Z784012444
+        GET /consultas/veicular/debitos/placa/ABC1234
+        GET /consultas/veicular/proprietario/placa/ABC1234
+        ```
+      parameters:
+        - name: produto
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [agregados, base-estadual, base-nacional, gravame, roubo-furto, leilao, aquisicoes, debitos, proprietario]
+          description: Chave do produto Infocar
+          example: gravame
+        - name: tipo
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [placa, chassi, motor]
+          description: |
+            Tipo do dado de entrada. Varia por produto:
+            - Todos aceitam `placa`
+            - A maioria aceita `chassi`
+            - Apenas `agregados` aceita `motor`
+          example: placa
+        - name: valor
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Valor para consulta (placa, chassi ou motor)
+          example: "ABC1234"
+        - $ref: "#/components/parameters/MockAuthHeader"
+        - $ref: "#/components/parameters/JWTAuthHeader"
+      responses:
+        "200":
+          description: Dados retornados pela Infocar
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InfocarProductResponse"
+        "400":
+          description: |
+            Possíveis erros:
+            - Produto desconhecido
+            - Tipo não aceito pelo produto (ex: `motor` para `gravame`)
+            - Saldo insuficiente
+            - Erro na API Infocar
         "401":
           description: Não autenticado
 
@@ -958,26 +1041,50 @@ components:
           format: date-time
 
     # ── Consultas Veiculares ─────────────────────────────────────────────────
-    AgregadosBResponse:
+    InfocarProductResponse:
       type: object
+      description: |
+        Resposta padrão de todos os produtos Infocar. Mesma estrutura para todos os produtos.
       properties:
         solicitacao:
           type: object
           additionalProperties: true
+          description: Metadados da requisição (hora, IP, tipo de dado, versão)
           example:
-            tipo: "placa"
-            valor: "ABC1234"
-            data: "2026-03-17T12:00:00Z"
+            horaSolicitacao: "2026-03-19 12:57:07.305816"
+            ip: "000.00.000.000"
+            nomeConsulta: "Agregados B"
+            tipoDado: "PLACA"
+            dado: "ABC1234"
+            nomeUsuario: "BUSKATOTAL"
+            versaoConsulta: "V1"
         retorno:
           type: object
           additionalProperties: true
+          description: |
+            Status da consulta.
+            - `mensagem: 0` — Sem registro
+            - `mensagem: 1` — Registro encontrado
+            - `mensagem: 3` — Dados incorretos
+            - `mensagem: 4` — Erro/sistema indisponível
+            - `mensagem: 5` — Limite excedido
+            - `mensagem: 6` — Falha de autenticação
           example:
-            status: "OK"
-            mensagem: "Consulta realizada com sucesso"
+            numeroResposta: "f3911976-0670-4501-8208-bd08ac0d85c0"
+            mensagem: 1
+            tempoProcessamento: 0.2816665
+            descricao: "Consulta realizada com sucesso"
+            dataRetorno: "2026-03-19 12:57:07.587483"
         dados:
           type: object
           additionalProperties: true
           description: |
-            Dados do veículo. Campos comuns:
-            `placa`, `chassi`, `renavam`, `marca`, `modelo`, `anoFabricacao`, `anoModelo`,
-            `cor`, `combustivel`, `municipio`, `uf`, `situacao`, `restricoes`, `proprietario`
+            Dados retornados pelo produto. A estrutura interna varia por produto:
+            - **Agregados B**: `dadosDoVeiculoCompleto` (placa, chassi, modelo, cor, etc)
+            - **Base Estadual/Nacional**: dados de emplacamento + situação + restrições
+            - **Gravame B**: dados do contrato de financiamento
+            - **Roubo/Furto B**: ocorrências policiais com BO
+            - **Leilão Essencial**: registros de leilão e danos
+            - **Info Aquisições**: histórico de transferências
+            - **Info Débitos**: multas, IPVA, taxas pendentes
+            - **Hist. Proprietário**: quantidade e tipo de donos anteriores

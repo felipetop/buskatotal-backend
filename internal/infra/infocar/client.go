@@ -30,6 +30,9 @@ type AgregadosBResponse struct {
     Dados       map[string]interface{} `json:"dados"`
 }
 
+// ProductResponse is the generic response for all Infocar products (same shape).
+type ProductResponse = AgregadosBResponse
+
 func NewClient(baseURL, idKey, user, password string) *Client {
     return &Client{
         baseURL:  strings.TrimRight(baseURL, "/"),
@@ -112,6 +115,45 @@ func (c *Client) QueryAgregadosB(ctx context.Context, token, queryType, value st
     var result AgregadosBResponse
     if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
         return nil, fmt.Errorf("agregados decode: %w", err)
+    }
+
+    return &result, nil
+}
+
+// QueryProduct queries any Infocar product by API version, product path, query type and value.
+// Example: QueryProduct(ctx, token, "v1.0", "BaseEstadualB", "placa", "ABC1234")
+func (c *Client) QueryProduct(ctx context.Context, token, apiVersion, productPath, queryType, value string) (*ProductResponse, error) {
+    if c.idKey == "" {
+        return nil, errors.New("infocar id key missing: set INFOCAR_ID_KEY")
+    }
+    if token == "" {
+        return nil, errors.New("token is required")
+    }
+    if queryType == "" || value == "" {
+        return nil, errors.New("query type and value are required")
+    }
+
+    url := fmt.Sprintf("%s/%s/%s/%s/%s", c.baseURL, apiVersion, productPath, queryType, value)
+    req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+    if err != nil {
+        return nil, fmt.Errorf("infocar %s request: %w", productPath, err)
+    }
+    req.Header.Set("Authorization", "Bearer "+token)
+    req.Header.Set("infocar-id-Key", c.idKey)
+
+    resp, err := c.http.Do(req)
+    if err != nil {
+        return nil, fmt.Errorf("infocar %s request: %w", productPath, err)
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+        return nil, fmt.Errorf("infocar %s failed: status %d", productPath, resp.StatusCode)
+    }
+
+    var result ProductResponse
+    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+        return nil, fmt.Errorf("infocar %s decode: %w", productPath, err)
     }
 
     return &result, nil
