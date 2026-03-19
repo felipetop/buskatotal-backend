@@ -12,6 +12,7 @@ import (
     "buskatotal-backend/configs"
     "buskatotal-backend/internal/domain/payment"
     "buskatotal-backend/internal/infra/firestore"
+    "buskatotal-backend/internal/infra/apifull"
     "buskatotal-backend/internal/infra/infocar"
     "buskatotal-backend/internal/infra/infovist"
     "buskatotal-backend/internal/infra/memory"
@@ -81,8 +82,12 @@ func Run() error {
 
         userHandler := httpinterfaces.NewUserHandler(userService)
         authHandler := httpinterfaces.NewAuthHandler(authService)
+        apifullClient := apifull.NewClient(cfg.ApiFullBaseURL, cfg.ApiFullToken)
+        apifullService := NewApiFullService(apifullClient, userRepo)
+        apifullHandler := httpinterfaces.NewApiFullHandler(apifullService)
+
         catalogHandler := httpinterfaces.NewCatalogHandler(cfg.CatalogMarkup)
-        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware, catalogHandler, infovistHandler, adminHandler)
+        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware, catalogHandler, infovistHandler, adminHandler, apifullHandler)
     } else {
         client, err := firestore.NewClient(cfg.FirebaseProjectID)
         if err != nil {
@@ -113,8 +118,12 @@ func Run() error {
 
         userHandler := httpinterfaces.NewUserHandler(userService)
         authHandler := httpinterfaces.NewAuthHandler(authService)
+        apifullClient := apifull.NewClient(cfg.ApiFullBaseURL, cfg.ApiFullToken)
+        apifullService := NewApiFullService(apifullClient, userRepo)
+        apifullHandler := httpinterfaces.NewApiFullHandler(apifullService)
+
         catalogHandler := httpinterfaces.NewCatalogHandler(cfg.CatalogMarkup)
-        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware, catalogHandler, infovistHandler, adminHandler)
+        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware, catalogHandler, infovistHandler, adminHandler, apifullHandler)
     }
 
     addr := fmt.Sprintf(":%s", cfg.Port)

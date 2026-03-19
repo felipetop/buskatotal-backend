@@ -26,6 +26,8 @@ type Config struct {
 	InfovistPassword   string  // Infovist API password credential
 	InfovistAPIToken   string  // Infovist API integration token
 	InfovistBaseURL    string  // Infovist API base URL
+	ApiFullToken       string  // API Full Bearer token
+	ApiFullBaseURL     string  // API Full base URL
 }
 
 func Load() Config {
@@ -53,6 +55,9 @@ func Load() Config {
 		InfovistPassword:   getEnv("INFOVIST_PASSWORD", ""),
 		InfovistAPIToken:   getEnv("INFOVIST_API_TOKEN", ""),
 		InfovistBaseURL:    getEnv("INFOVIST_BASE_URL", "https://api.infovist.com.br/api/v1"),
+		// APIFULL_TOKEN deve ser definido em variável de ambiente segura.
+		ApiFullToken:       getEnv("APIFULL_TOKEN", ""),
+		ApiFullBaseURL:     getEnv("APIFULL_BASE_URL", "https://api.apifull.com.br/api"),
 	}
 }
 

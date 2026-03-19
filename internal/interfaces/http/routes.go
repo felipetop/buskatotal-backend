@@ -2,7 +2,7 @@ package http
 
 import "github.com/gin-gonic/gin"
 
-func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, authHandler *AuthHandler, infocarHandler *InfocarHandler, paymentHandler *PaymentHandler, authMiddleware *AuthMiddleware, catalogHandler *CatalogHandler, infovistHandler *InfovistHandler, adminHandler *AdminHandler) {
+func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, authHandler *AuthHandler, infocarHandler *InfocarHandler, paymentHandler *PaymentHandler, authMiddleware *AuthMiddleware, catalogHandler *CatalogHandler, infovistHandler *InfovistHandler, adminHandler *AdminHandler, apifullHandler *ApiFullHandler) {
 
     if authHandler != nil {
         auth := router.Group("/auth")
@@ -70,6 +70,16 @@ func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, authHandler *A
             vistorias.GET("/:protocol", infovistHandler.ViewInspection)
             vistorias.GET("/:protocol/relatorio", infovistHandler.GetReportV1)
             vistorias.GET("/:protocol/relatorio-completo", infovistHandler.GetReportV2)
+        }
+    }
+
+    if apifullHandler != nil {
+        apifull := router.Group("/consultas/dados")
+        if authMiddleware != nil {
+            apifull.Use(authMiddleware.Handler())
+        }
+        {
+            apifull.POST("/:produto", apifullHandler.QueryProduct)
         }
     }
 

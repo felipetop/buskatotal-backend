@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: BuskaTotal Backend API
   description: |
-    API para gestão de usuários, consultas veiculares Infocar (9 produtos), vistorias digitais Infovist e pagamentos via PicPay.
+    API para gestão de usuários, consultas Infocar (9 produtos), consultas API Full (33 produtos), vistorias digitais Infovist e pagamentos via PicPay.
 
     ## Autenticação
     - `AUTH_MODE=mock` (local): use o header `X-User-Id` com o ID do usuário.
@@ -610,6 +610,185 @@ paths:
         "401":
           description: Não autenticado
 
+  # ── Consultas API Full ──────────────────────────────────────────────────────
+
+  /consultas/dados/{produto}:
+    post:
+      summary: Consulta genérica (API Full)
+      tags: [Consultas API Full]
+      description: |
+        Consulta qualquer produto da API Full. O valor é debitado do saldo do usuário.
+        Todos os endpoints usam **POST** com Bearer token.
+
+        ## Produtos disponíveis
+
+        ### Dados Cadastrais
+        | Chave (`produto`) | Nome | Preço | Input (`valor`) |
+        |---|---|---|---|
+        | `cpf-simples` | CPF Simples | R$0,30 | CPF (11 dígitos) |
+        | `cpf-completo` | CPF Completo | R$1,80 | CPF |
+        | `cpf-ultra` | CPF Ultra Completo | R$3,51 | CPF |
+        | `busca-nome` | Busca pelo nome | R$4,50 | nome\|UF (ex: `JOAO SILVA\|SP`) |
+        | `busca-telefone` | Busca pelo telefone | R$4,50 | DDD\|NUMERO (ex: `11\|999999999`) |
+        | `cnpj` | CNPJ Completo | R$0,18 | CNPJ (14 dígitos) |
+
+        ### Veicular
+        | Chave (`produto`) | Nome | Preço | Input (`valor`) |
+        |---|---|---|---|
+        | `placa-basica` | Placa Básica | R$0,30 | placa |
+        | `bin-estadual` | BIN Estadual | R$8,28 | placa |
+        | `bin-nacional` | BIN Nacional | R$9,00 | placa |
+        | `foto-leilao` | Foto Leilão | R$36,00 | placa |
+        | `leilao-apifull` | Leilão | R$26,28 | placa |
+        | `historico-roubo-furto` | Histórico de roubo ou furto | R$28,08 | placa |
+        | `indice-risco` | Índice de risco veicular | R$18,72 | placa |
+        | `proprietario-placa` | Proprietário placa | R$2,73 | placa |
+        | `recall` | Recall | R$10,80 | placa |
+        | `gravame-apifull` | Gravame | R$6,60 | placa |
+        | `fipe` | Fipe | R$0,33 | placa |
+        | `csv` | Certificado de Segurança Veicular | R$6,60 | placa |
+        | `crlv` | CRLV | R$60,84 | placa |
+        | `roubo-furto-apifull` | Histórico de roubo e furto | R$10,80 | placa |
+
+        ### Dívidas e Crédito
+        | Chave (`produto`) | Nome | Preço | Input (`valor`) |
+        |---|---|---|---|
+        | `spc-srs` | SPC e SRS | R$24,84 | CPF |
+        | `serasa-premium` | Serasa Premium | R$20,88 | CPF ou CNPJ |
+        | `cred-completa` | Cred Completa Plus | R$7,47 | CPF ou CNPJ |
+        | `boavista-essencial` | Boa Vista Essencial Positivo | R$9,69 | CPF ou CNPJ |
+        | `scpc-bv-basica` | SCPC BV Básica | R$7,20 | CPF |
+        | `cadastrais-score-dividas` | Dados cadastrais, score e dívidas | R$8,28 | CPF ou CNPJ |
+        | `cadastrais-score-dividas-cp` | Dados cadastrais, score e dívidas CP | R$8,97 | CPF ou CNPJ |
+        | `scr-bacen` | SCR e Score (BACEN) | R$28,08 | CPF ou CNPJ |
+        | `cenprot` | CENPROT V2 | R$1,20 | CPF ou CNPJ |
+        | `quod` | QUOD | R$14,34 | CPF ou CNPJ |
+
+        ### Jurídico
+        | Chave (`produto`) | Nome | Preço | Input (`valor`) |
+        |---|---|---|---|
+        | `acoes-processos` | Ações e processos judiciais | R$12,42 | CPF ou CNPJ |
+        | `dossie-juridico` | Dossiê Jurídico | R$35,28 | CPF |
+        | `cndt` | Certidão Nacional de Débitos Trabalhistas | R$21,60 | CPF ou CNPJ |
+
+        ## Formato do body
+        ```json
+        { "valor": "12345678900" }
+        ```
+
+        Para `busca-nome`: `{ "valor": "JOAO SILVA|SP" }` (nome|UF)
+
+        Para `busca-telefone`: `{ "valor": "11|999999999" }` (DDD|NUMERO)
+
+        ## Comportamento
+        1. Valida o produto e o valor
+        2. Debita o saldo do usuário
+        3. Monta o body correto para a API Full (cpf, cnpj, placa, document, etc)
+        4. Chama `POST https://api.apifull.com.br/api/{endpoint}` com Bearer token
+        5. Em caso de erro, faz rollback do saldo
+
+        ## Exemplos
+        ```
+        POST /consultas/dados/cpf-simples
+        { "valor": "12345678900" }
+
+        POST /consultas/dados/fipe
+        { "valor": "ABC1234" }
+
+        POST /consultas/dados/serasa-premium
+        { "valor": "12345678900" }
+
+        POST /consultas/dados/busca-nome
+        { "valor": "JOAO SILVA|SP" }
+        ```
+      parameters:
+        - name: produto
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - cpf-simples
+              - cpf-completo
+              - cpf-ultra
+              - busca-nome
+              - busca-telefone
+              - cnpj
+              - placa-basica
+              - bin-estadual
+              - bin-nacional
+              - foto-leilao
+              - leilao-apifull
+              - historico-roubo-furto
+              - indice-risco
+              - proprietario-placa
+              - recall
+              - gravame-apifull
+              - fipe
+              - csv
+              - crlv
+              - roubo-furto-apifull
+              - spc-srs
+              - serasa-premium
+              - cred-completa
+              - boavista-essencial
+              - scpc-bv-basica
+              - cadastrais-score-dividas
+              - cadastrais-score-dividas-cp
+              - scr-bacen
+              - cenprot
+              - quod
+              - acoes-processos
+              - dossie-juridico
+              - cndt
+          description: Chave do produto API Full
+          example: cpf-simples
+        - $ref: "#/components/parameters/MockAuthHeader"
+        - $ref: "#/components/parameters/JWTAuthHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApiFullQueryInput"
+            examples:
+              cpf:
+                summary: Consulta por CPF
+                value:
+                  valor: "12345678900"
+              placa:
+                summary: Consulta por placa
+                value:
+                  valor: "ABC1234"
+              cnpj:
+                summary: Consulta por CNPJ
+                value:
+                  valor: "12345678000190"
+              nome:
+                summary: Busca por nome
+                value:
+                  valor: "JOAO SILVA|SP"
+              telefone:
+                summary: Busca por telefone
+                value:
+                  valor: "11|999999999"
+      responses:
+        "200":
+          description: Dados retornados pela API Full
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiFullProductResponse"
+        "400":
+          description: |
+            Possíveis erros:
+            - Produto desconhecido
+            - Valor ausente ou inválido
+            - Saldo insuficiente
+            - Erro na API Full
+        "401":
+          description: Não autenticado
+
 components:
   parameters:
     UserIdPath:
@@ -1040,7 +1219,56 @@ components:
           type: string
           format: date-time
 
-    # ── Consultas Veiculares ─────────────────────────────────────────────────
+    # ── Consultas API Full ────────────────────────────────────────────────────
+    ApiFullQueryInput:
+      type: object
+      required: [valor]
+      properties:
+        valor:
+          type: string
+          description: |
+            Valor para consulta. O formato depende do produto:
+            - CPF: 11 dígitos (ex: `12345678900`)
+            - CNPJ: 14 dígitos (ex: `12345678000190`)
+            - Placa: 7 caracteres (ex: `ABC1234`)
+            - CPF ou CNPJ (document): qualquer um dos dois
+            - Nome: `NOME COMPLETO|UF` (ex: `JOAO SILVA|SP`)
+            - Telefone: `DDD|NUMERO` (ex: `11|999999999`)
+
+    ApiFullProductResponse:
+      type: object
+      description: |
+        Resposta padrão da API Full. Todos os produtos retornam `status` + `dados`.
+        A estrutura de `dados` varia por produto.
+      properties:
+        status:
+          type: string
+          description: Status da consulta (`sucesso` ou mensagem de erro)
+          example: "sucesso"
+        dados:
+          type: object
+          additionalProperties: true
+          description: |
+            Dados retornados pelo produto. A estrutura varia. Exemplos:
+
+            **CPF Simples:**
+            ```json
+            { "cpf", "nome", "sexo", "dataNascimento", "nomeMae", "nomePai",
+              "situacaoRFB", "dataSituacaoRFB",
+              "documentos": { "pis", "ctps", "tituloEleitor", "rg": { "numero", "orgaoEmissor", "uf" } } }
+            ```
+
+            **Veiculares (placa-basica, bin-estadual, etc):**
+            Retornam dados do veículo — placa, modelo, cor, ano, chassi, etc.
+            Estrutura varia por endpoint (BIN retorna em formato XML-like aninhado).
+
+            **Dívidas (serasa, spc, boavista, etc):**
+            Retornam score, pendências, protestos, cheques — formato varia por bureau de crédito.
+
+            **Jurídico:**
+            Retornam processos judiciais, certidões, dossiês — formato varia.
+
+    # ── Consultas Veiculares (Infocar) ─────────────────────────────────────
     InfocarProductResponse:
       type: object
       description: |
