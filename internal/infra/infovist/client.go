@@ -129,15 +129,24 @@ func (c *Client) CreateInspection(ctx context.Context, token string, input Creat
 	}
 	defer resp.Body.Close()
 
-	if err := checkResponse(resp, "create inspection"); err != nil {
-		return nil, err
+	body, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("infovist create inspection failed (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	var result CreateInspectionResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("infovist create inspection decode: %w", err)
+	if err := json.Unmarshal(body, &result); err == nil && result.Protocol != "" {
+		return &result, nil
 	}
-	return &result, nil
+
+	var wrapper struct {
+		Data CreateInspectionResponse `json:"data"`
+	}
+	if err := json.Unmarshal(body, &wrapper); err != nil {
+		return nil, fmt.Errorf("infovist create inspection decode error (body: %s)", string(body))
+	}
+	return &wrapper.Data, nil
 }
 
 func (c *Client) ViewInspection(ctx context.Context, token, protocol string) (*ViewInspectionResponse, error) {
@@ -147,15 +156,25 @@ func (c *Client) ViewInspection(ctx context.Context, token, protocol string) (*V
 	}
 	defer resp.Body.Close()
 
-	if err := checkResponse(resp, "view inspection"); err != nil {
-		return nil, err
+	body, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("infovist view inspection failed (status %d): %s", resp.StatusCode, string(body))
 	}
 
+	// Try direct parse first, then try with "data" wrapper
 	var result ViewInspectionResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("infovist view inspection decode: %w", err)
+	if err := json.Unmarshal(body, &result); err == nil && result.Protocol != "" {
+		return &result, nil
 	}
-	return &result, nil
+
+	var wrapper struct {
+		Data ViewInspectionResponse `json:"data"`
+	}
+	if err := json.Unmarshal(body, &wrapper); err != nil {
+		return nil, fmt.Errorf("infovist view inspection decode error (body: %s)", string(body))
+	}
+	return &wrapper.Data, nil
 }
 
 // ReportResponse represents the v1 report PDF response.

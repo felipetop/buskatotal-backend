@@ -17,7 +17,10 @@
       "Read(//c/Users/Dell/Desktop/buska-total/buska-total-html/src/environments/**)",
       "Read(//c/Users/Dell/Desktop/buska-total/buska-total-html/**)",
       "Bash(tasklist /fo csv /nh)",
-      "Bash(powershell -Command \"Get-Process | Sort-Object CPU -Descending | Select-Object -First 15 Name, CPU, WorkingSet | Format-Table -AutoSize\")"
+      "Bash(powershell -Command \"Get-Process | Sort-Object CPU -Descending | Select-Object -First 15 Name, CPU, WorkingSet | Format-Table -AutoSize\")",
+      "Read(//c/Users/Dell/Desktop/buska-total/**)",
+      "Bash(pip install:*)",
+      "Bash(python -c \":*)"
     ],
     "additionalDirectories": [
       "c:\\Users\\Dell\\Desktop\\buska-total\\buska-total-html\\src\\app\\pages\\pagamentos",
