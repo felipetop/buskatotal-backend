@@ -1044,12 +1044,236 @@ components:
     InfocarProductResponse:
       type: object
       description: |
-        Resposta padrão de todos os produtos Infocar. Mesma estrutura para todos os produtos.
+        Resposta padrão de todos os produtos Infocar. `solicitacao` e `retorno` são iguais
+        para todos. O campo `dados` varia por produto — veja abaixo a estrutura de cada um.
+
+        ---
+
+        ## 1. AGREGADOS B (`agregados`)
+        ```json
+        "dados": {
+          "dadosDoVeiculoCompleto": {
+            "placa", "chassi", "modelo", "anoFabricacao", "anoModelo",
+            "cor", "combustivel", "uf", "municipio", "tipoVeiculo",
+            "motor", "numeroCaixaCambio", "numeroEixoTraseiroDiferencial",
+            "procedencia", "situacaoChassi", "capacidadeDeCarga",
+            "potencia", "numeroCilindradas", "capacidadeDePassageiros",
+            "tipoMontagem", "quantidadeDeEixos", "cmt", "pbt",
+            "carroceria", "numeroCarroceria"
+          }
+        }
+        ```
+
+        ## 2. BASE ESTADUAL B (`base-estadual`)
+        ```json
+        "dados": {
+          "dadosDoVeiculo": {
+            "placa", "chassi", "renavam", "modelo", "anoFabricacao",
+            "anoModelo", "cor", "combustivel", "uf", "municipio",
+            "origemEmplacamento", "tipoVeiculo"
+          },
+          "informacoesTecnicasAdcionais": {
+            "motor", "numeroCaixaCambio", "capacidadeDePassageiros",
+            "potencia", "quantidadeDeEixos", "capacidadeDeCarga",
+            "cmt", "pbt", "carroceria", "numeroCarroceria",
+            "numeroEixoTraseiroDiferencial", "numeroTerceiroEixo",
+            "numeroCilindradas", "especie", "categoria", "procedencia",
+            "dataAtualizacao", "situacaoChassi", "tipoDocFaturado",
+            "documentoFaturado", "ufFaturado"
+          },
+          "restricoesImpedimentos": {
+            "situacaoVeiculo": "CIRCULACAO",
+            "rouboFurto": "",
+            "restricoes": [],
+            "intencaoDeGravame": {
+              "numeroContrato", "codigoAgenteFinanceiro",
+              "dataVigenciaDoContrato", "documentoArrendatario",
+              "restricaoFinanceira", "agenteFinanceiro",
+              "nomeFinanciado", "documentoFinanciado"
+            }
+          }
+        }
+        ```
+
+        ## 3. BASE NACIONAL B (`base-nacional`)
+        Mesma estrutura do Base Estadual B:
+        ```json
+        "dados": {
+          "dadosDoVeiculo": { ... },
+          "informacoesTecnicasAdcionais": { ... },
+          "restricoesImpedimentos": {
+            "situacaoVeiculo", "rouboFurto", "restricoes": [],
+            "intencaoDeGravame": { ... }
+          }
+        }
+        ```
+
+        ## 4. GRAVAME B (`gravame`)
+        ```json
+        "dados": {
+          "historico": [
+            {
+              "placa", "renavam", "anoFabricacao", "anoModelo", "uf",
+              "documentoFinanciado", "nomeFinanciado", "numeroContrato",
+              "codigoAgenteFinanceiro", "documentoAgenteFinanceiro",
+              "agenteFinanceiro", "ufGravame", "dataDoGravame",
+              "vigenciaGravame", "situacao", "situacaoVeiculo"
+            }
+          ]
+        }
+        ```
+        **Nota:** `historico` é um array — pode ter múltiplos contratos de financiamento.
+
+        ## 5. HISTÓRICO ROUBO E FURTO B (`roubo-furto`)
+        ```json
+        "dados": {
+          "dadosDoVeiculo": {
+            "placa", "chassi", "renavam", "modelo", "anoFabricacao",
+            "anoModelo", "cor", "combustivel", "uf", "municipio",
+            "origemEmplacamento", "tipoVeiculo"
+          },
+          "informacoesTecnicasAdicionais": { ... },
+          "restricoesImpedimentos": {
+            "situacaoVeiculo", "rouboFurto": "texto com ocorrências",
+            "restricoes": ["VEICULO COM OCORRENCIA DE FURTO/ROUBO", ...]
+          },
+          "registrosRouboFurto": [
+            {
+              "placa", "chassi", "anoFabricacao", "anoModelo", "cor", "uf",
+              "municipioEmplacamento", "tipoOcorrencia",
+              "ufBoletim", "codigoOrgaoDeSeguranca",
+              "numeroBoletimDeOcorrencia", "dataOcorrencia",
+              "municipioOcorrencia"
+            }
+          ]
+        }
+        ```
+        **Nota:** `registrosRouboFurto` é um array de ocorrências policiais.
+
+        ## 6. LEILÃO ESSENCIAL (`leilao`)
+        ```json
+        "dados": {
+          "dadosDoVeiculo": { "placa", "chassi", "renavam", "modelo", ... },
+          "informacoesTecnicasAdcionais": { "motor", "potencia", ... },
+          "dadosDoVeiculoLeilao": {
+            "placa", "chassi", "renavam", "modelo", "anoFabricacao",
+            "anoModelo", "cor", "segmento", "subSegmento", "motor",
+            "numeroCaixaCambio", "numeroCarroceria",
+            "numeroEixoTraseiroDiferencial", "quantidadeDeEixos"
+          },
+          "score": "3",
+          "registrosLeilao": [
+            {
+              "leiloeiro", "comitente", "lote", "dataLeilao",
+              "condicoesVeiculo", "situacaoChassi", "condicoesMotor",
+              "condicoesCambio", "condicoesMecanica", "observacao"
+            }
+          ],
+          "dadosDoVeiculoRemarketing": { ... } | null,
+          "registrosRemarketing": [
+            {
+              "organizador", "vendedor", "item", "dataEvento",
+              "condicoesVeiculo", "situacaoChassi", "condicoesMotor",
+              "condicoesCambio", "condicoesMecanica", "observacao"
+            }
+          ] | null,
+          "inspecaoVeicular": {
+            "data", "link", "garantia"
+          } | null,
+          "checklistVeiculo": {
+            "portaMalas", "frente", "frenteDireita", "frenteEsquerda",
+            "portaFrenteDireita", "portaFrenteEsquerda",
+            "portaTraseiraDireita", "portatraseiraEsquerda",
+            "pneuFrenteDireita", "pneuFrenteEsquerda",
+            "pneuTraseiraDireita", "pneuTraseiraEsquerda",
+            "bancosDianteiros", "bancosTraseiros", "teto", "observacoes"
+          } | null,
+          "fotos": null,
+          "ratingSeguridade": {
+            "aceitacaoSeguro":  { "indicadorProbabilidade", "descricao" },
+            "fipeParcial":      { "indicadorProbabilidade", "descricao" },
+            "vistoriaEspecial": { "indicadorProbabilidade", "descricao" }
+          },
+          "indicioSinistro": "texto"
+        }
+        ```
+        **Score:** 1=Inteiro, 2=Peq.Danos, 3=Méd.Danos, 4=Grandes Danos/Sucata/Alagado.
+        **Nota:** Vários campos podem ser `null` se não houver dados.
+
+        ## 7. INFO AQUISIÇÕES (`aquisicoes`)
+        ```json
+        "dados": {
+          "placa", "chassi", "ufJurisdicao",
+          "nomeMunicipioEmplacamento", "anoFabricacao", "anoModelo",
+          "marcaModelo", "tipoVeiculo", "tipoCarroceria",
+          "numeroCarroceria", "corPredominante", "combustivel",
+          "potencia", "cilindradas", "capacidadePassageiros",
+          "numeroCaixaCambio", "numeroEixos", "numeroMotor",
+          "dataEmplacamento", "quantidadeAquisicoes",
+          "dataUltimaAquisicao", "ufUltimaAquisicao",
+          "nomeMunicipioUltimaAquisicao", "ufAtual",
+          "nomeMunicipioAtualAquisicao"
+        }
+        ```
+        **Nota:** Campos diretos (sem objeto wrapper). `quantidadeAquisicoes` é string numérica.
+
+        ## 8. INFO DÉBITOS (`debitos`)
+        ```json
+        "dados": {
+          "dadosDoVeiculo": {
+            "renavam", "placa", "chassi", "totalDebito": 11186.49
+          },
+          "debitosMultas": {
+            "totalDebito": 585.71,
+            "quantidade": 4,
+            "ocorrencia": [
+              {
+                "identificador", "fonte", "uf", "descricao",
+                "valor": 130.16, "dataVencimento",
+                "dataHoraMulta", "linhaDigitavel", "local"
+              }
+            ]
+          },
+          "debitosIPVA": {
+            "totalDebito", "quantidade",
+            "ocorrencia": [
+              { "exercicio", "valor", "taxaLicenciamento" }
+            ]
+          },
+          "debitosDPVAT": {
+            "totalDebito", "quantidade",
+            "ocorrencia": [
+              { "exercicio", "valor" }
+            ]
+          }
+        }
+        ```
+        **Nota:** `totalDebito` em `dadosDoVeiculo` é a soma de todos os débitos. Valores são `number`, não string.
+
+        ## 9. HISTÓRICO PROPRIETÁRIO (`proprietario`)
+        ```json
+        "dados": {
+          "historicoProprietarioA": [
+            {
+              "ocorrencia": "1",
+              "documento": "NAO INFORMADO",
+              "nome": "JOAO DA SILVA",
+              "municipio": "NAO INFORMADO",
+              "uf": "SP",
+              "data": "2013",
+              "motivo": "NAO INFORMADO"
+            }
+          ]
+        }
+        ```
+        **Nota:** `historicoProprietarioA` é um array ordenado por `ocorrencia` (cronológico).
+
       properties:
         solicitacao:
           type: object
           additionalProperties: true
-          description: Metadados da requisição (hora, IP, tipo de dado, versão)
+          description: |
+            Metadados da requisição. Igual para todos os produtos.
           example:
             horaSolicitacao: "2026-03-19 12:57:07.305816"
             ip: "000.00.000.000"
@@ -1057,12 +1281,13 @@ components:
             tipoDado: "PLACA"
             dado: "ABC1234"
             nomeUsuario: "BUSKATOTAL"
+            descricaoChave: "CHAVE"
             versaoConsulta: "V1"
         retorno:
           type: object
           additionalProperties: true
           description: |
-            Status da consulta.
+            Status da consulta. Igual para todos os produtos.
             - `mensagem: 0` — Sem registro
             - `mensagem: 1` — Registro encontrado
             - `mensagem: 3` — Dados incorretos
@@ -1078,13 +1303,4 @@ components:
         dados:
           type: object
           additionalProperties: true
-          description: |
-            Dados retornados pelo produto. A estrutura interna varia por produto:
-            - **Agregados B**: `dadosDoVeiculoCompleto` (placa, chassi, modelo, cor, etc)
-            - **Base Estadual/Nacional**: dados de emplacamento + situação + restrições
-            - **Gravame B**: dados do contrato de financiamento
-            - **Roubo/Furto B**: ocorrências policiais com BO
-            - **Leilão Essencial**: registros de leilão e danos
-            - **Info Aquisições**: histórico de transferências
-            - **Info Débitos**: multas, IPVA, taxas pendentes
-            - **Hist. Proprietário**: quantidade e tipo de donos anteriores
+          description: "Varia por produto — veja a documentação detalhada acima."

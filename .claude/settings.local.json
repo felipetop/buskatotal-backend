@@ -20,7 +20,8 @@
       "Bash(powershell -Command \"Get-Process | Sort-Object CPU -Descending | Select-Object -First 15 Name, CPU, WorkingSet | Format-Table -AutoSize\")",
       "Read(//c/Users/Dell/Desktop/buska-total/**)",
       "Bash(pip install:*)",
-      "Bash(python -c \":*)"
+      "Bash(python -c \":*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/consultas/veicular/base-nacional/cnpj/12211221212112 -H \"X-User-Id: test\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\Dell\\Desktop\\buska-total\\buska-total-html\\src\\app\\pages\\pagamentos",
