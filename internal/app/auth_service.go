@@ -81,12 +81,14 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
         role = user.RoleAdmin
     }
 
+    now := time.Now()
     created, err := s.repo.Create(ctx, user.User{
-        Name:          name,
-        Email:         email,
-        Role:          role,
-        PasswordHash:  string(hash),
-        EmailVerified: false,
+        Name:            name,
+        Email:           email,
+        Role:            role,
+        PasswordHash:    string(hash),
+        EmailVerified:   false,
+        AcceptedTermsAt: &now,
     })
     if err != nil {
         return user.User{}, "", err

@@ -355,6 +355,16 @@ Checklist de todas as proteções aplicadas em cada endpoint da API.
 | `POST /auth/forgot-password` | Pública | **Nunca revela se o e-mail existe** (sempre 200). Token 256-bit, expiração 1h |
 | `POST /auth/reset-password` | Pública | Valida token + senha forte, uso único, altera hash bcrypt |
 
+### LGPD (Direitos do Titular)
+
+| Endpoint | Auth | Ownership | Proteções |
+|---|---|---|---|
+| `GET /users/:id/data` | JWT | `id == authUserID` | Retorna apenas dados do próprio usuário. Registra acesso no log |
+| `GET /users/:id/data/export` | JWT | `id == authUserID` | Exporta dados pessoais + histórico. Não inclui dados de terceiros. Registra no log |
+| `POST /users/:id/data/deletion-request` | JWT | `id == authUserID` | Verifica duplicata (409). Notifica DPO e usuário por e-mail. Registra no log |
+| `GET /admin/deletion-requests` | JWT + Admin | - | Lista todas as solicitações pendentes |
+| `PATCH /admin/deletion-requests/:id` | JWT + Admin | - | Anonimiza dados ao marcar como `completed`. Mantém registros financeiros |
+
 ### Usuários
 
 | Endpoint | Auth | Ownership | Proteções |

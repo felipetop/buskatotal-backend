@@ -64,6 +64,9 @@ paths:
       description: |
         Cria uma conta e retorna o JWT. O usuário é criado com `emailVerified: false`.
 
+        **LGPD:** O campo `accepted_terms` é obrigatório (`true`). O backend registra
+        `acceptedTermsAt` com o timestamp do servidor. Cadastro rejeitado se `false` ou ausente.
+
         Se a variável `RESEND_API_KEY` estiver configurada, um e-mail de verificação é enviado
         automaticamente para o endereço cadastrado (envio assíncrono — não bloqueia a resposta).
 
@@ -86,6 +89,7 @@ paths:
               name: "João Silva"
               email: "joao@email.com"
               password: "Senha@1234"
+              accepted_terms: true
       responses:
         "201":
           description: Usuário registrado (emailVerified=false até confirmação)
@@ -319,6 +323,79 @@ paths:
           description: Não autenticado
         "403":
           description: Tentativa de consultar saldo de outro usuário
+
+  # ── LGPD (Direitos do Titular) ─────────────────────────────────────────────
+
+  /users/{id}/data:
+    get:
+      summary: Consultar meus dados (LGPD)
+      tags: [LGPD]
+      description: |
+        Retorna os dados pessoais do usuário autenticado.
+        O usuário só pode consultar seus próprios dados.
+      parameters:
+        - $ref: "#/components/parameters/UserIdPath"
+        - $ref: "#/components/parameters/JWTAuthHeader"
+      responses:
+        "200":
+          description: Dados do usuário
+        "401":
+          description: Não autenticado
+        "403":
+          description: Tentativa de acessar dados de outro usuário
+
+  /users/{id}/data/export:
+    get:
+      summary: Exportar meus dados (Portabilidade LGPD)
+      tags: [LGPD]
+      description: |
+        Exporta todos os dados pessoais do usuário em formato JSON estruturado.
+        Inclui histórico de vistorias e pagamentos. Não inclui dados de terceiros.
+      parameters:
+        - $ref: "#/components/parameters/UserIdPath"
+        - $ref: "#/components/parameters/JWTAuthHeader"
+      responses:
+        "200":
+          description: Dados exportados
+        "401":
+          description: Não autenticado
+        "403":
+          description: Tentativa de exportar dados de outro usuário
+
+  /users/{id}/data/deletion-request:
+    post:
+      summary: Solicitar exclusão de conta (LGPD)
+      tags: [LGPD]
+      description: |
+        Registra uma solicitação de exclusão de dados pessoais.
+        Prazo máximo: 15 dias úteis (Art. 18 LGPD).
+
+        - Envia e-mail de confirmação para o usuário
+        - Notifica o DPO (karinbelan43@gmail.com)
+        - Retorna `409` se já existe solicitação pendente
+      parameters:
+        - $ref: "#/components/parameters/UserIdPath"
+        - $ref: "#/components/parameters/JWTAuthHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+            example:
+              reason: "Não desejo mais utilizar o serviço"
+      responses:
+        "200":
+          description: Solicitação registrada
+        "401":
+          description: Não autenticado
+        "403":
+          description: Tentativa de solicitar exclusão de outro usuário
+        "409":
+          description: Solicitação já pendente
 
   # ── Pagamentos ───────────────────────────────────────────────────────────────
 
@@ -993,7 +1070,7 @@ components:
     # ── Auth ──────────────────────────────────────────────────────────────────
     AuthRegisterInput:
       type: object
-      required: [email, password]
+      required: [email, password, accepted_terms]
       properties:
         name:
           type: string
@@ -1004,6 +1081,9 @@ components:
           type: string
           format: password
           description: "Mínimo 10 chars, 1 maiúscula, 1 minúscula, 1 número, 1 especial (@ ! # $ %)"
+        accepted_terms:
+          type: boolean
+          description: "Aceite dos termos de uso e política de privacidade. Obrigatório: `true`."
 
     AuthLoginInput:
       type: object
@@ -1070,6 +1150,10 @@ components:
         emailVerified:
           type: boolean
           description: "Indica se o e-mail foi verificado via link de confirmação. Inicia como `false` no registro."
+        acceptedTermsAt:
+          type: string
+          format: date-time
+          description: "Data/hora do aceite dos termos de uso e política de privacidade (LGPD)."
         createdAt:
           type: string
           format: date-time

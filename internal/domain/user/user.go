@@ -8,15 +8,16 @@ const (
 )
 
 type User struct {
-    ID            string    `json:"id" firestore:"id"`
-    Name          string    `json:"name" firestore:"name"`
-    Email         string    `json:"email" firestore:"email"`
-    Role          string    `json:"role" firestore:"role"`
-    PasswordHash  string    `json:"-" firestore:"passwordHash"`
-    Balance       int64     `json:"balance" firestore:"balance"`
-    EmailVerified bool      `json:"emailVerified" firestore:"emailVerified"`
-    CreatedAt     time.Time `json:"createdAt" firestore:"createdAt"`
-    UpdatedAt     time.Time `json:"updatedAt" firestore:"updatedAt"`
+    ID              string     `json:"id" firestore:"id"`
+    Name            string     `json:"name" firestore:"name"`
+    Email           string     `json:"email" firestore:"email"`
+    Role            string     `json:"role" firestore:"role"`
+    PasswordHash    string     `json:"-" firestore:"passwordHash"`
+    Balance         int64      `json:"balance" firestore:"balance"`
+    EmailVerified   bool       `json:"emailVerified" firestore:"emailVerified"`
+    AcceptedTermsAt *time.Time `json:"acceptedTermsAt,omitempty" firestore:"acceptedTermsAt"`
+    CreatedAt       time.Time  `json:"createdAt" firestore:"createdAt"`
+    UpdatedAt       time.Time  `json:"updatedAt" firestore:"updatedAt"`
 }
 
 func (u User) IsAdmin() bool {

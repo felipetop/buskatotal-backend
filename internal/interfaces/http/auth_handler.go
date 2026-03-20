@@ -30,9 +30,10 @@ type EmailVerificationService interface {
 }
 
 type authInput struct {
-    Name     string `json:"name"`
-    Email    string `json:"email"`
-    Password string `json:"password"`
+    Name          string `json:"name"`
+    Email         string `json:"email"`
+    Password      string `json:"password"`
+    AcceptedTerms *bool  `json:"accepted_terms"`
 }
 
 func NewAuthHandler(service AuthService, emailVerifyService EmailVerificationService) *AuthHandler {
@@ -43,6 +44,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
     var input authInput
     if err := c.ShouldBindJSON(&input); err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+
+    if input.AcceptedTerms == nil || !*input.AcceptedTerms {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "you must accept the terms of use and privacy policy"})
         return
     }
 

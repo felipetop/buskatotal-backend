@@ -180,3 +180,7 @@ Sem logs estruturados. Erros são retornados ao cliente mas não registrados no 
 | 2026-03 | Coleção `verification_tokens` no Firestore | Separação clara de responsabilidades — tokens de verificação não poluem a coleção `users` |
 | 2026-03 | Recuperação de senha com token de 1h | Token mais curto que verificação (1h vs 24h) — reset de senha é operação mais sensível |
 | 2026-03 | `forgot-password` sempre retorna 200 | Nunca revelar se um e-mail está cadastrado — previne user enumeration |
+| 2026-03 | LGPD — `accepted_terms_at` obrigatório no registro | Timestamp gerado pelo backend (não confiar no front). Rejeita cadastro sem aceite |
+| 2026-03 | LGPD — endpoints de direitos do titular | `GET /users/:id/data`, `GET /users/:id/data/export`, `POST /users/:id/data/deletion-request` |
+| 2026-03 | LGPD — exclusão = anonimização | Dados financeiros mantidos por 5 anos (obrigação fiscal). Dados pessoais anonimizados |
+| 2026-03 | Coleções `deletion_requests` e `data_processing_log` | Auditoria LGPD — registro de todas as operações sobre dados pessoais |

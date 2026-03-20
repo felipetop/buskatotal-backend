@@ -10,6 +10,7 @@ import (
     "github.com/gin-gonic/gin"
 
     "buskatotal-backend/configs"
+    "buskatotal-backend/internal/domain/email"
     "buskatotal-backend/internal/domain/payment"
     "buskatotal-backend/internal/infra/firestore"
     "buskatotal-backend/internal/infra/apifull"
@@ -62,18 +63,24 @@ func Run() error {
     }
 
     var emailVerificationService *EmailVerificationService
+    var emailSender email.Sender
+    if cfg.ResendAPIKey != "" {
+        emailSender = resend.NewClient(cfg.ResendAPIKey)
+    }
 
     if cfg.UseMockDB || cfg.FirebaseProjectID == "" {
         userRepo := memory.NewUserRepository()
         orderRepo := memory.NewOrderRepository()
         inspRepo := memory.NewInspectionRepository()
-        if cfg.ResendAPIKey != "" {
+        deletionRepo := memory.NewDeletionRepository()
+        logRepo := memory.NewLogRepository()
+        if emailSender != nil {
             verificationRepo := memory.NewVerificationRepository()
-            emailSender := resend.NewClient(cfg.ResendAPIKey)
             emailVerificationService = NewEmailVerificationService(verificationRepo, userRepo, emailSender)
         }
         userService := NewUserService(userRepo)
         authService := NewAuthService(userRepo, cfg.AuthJWTSecret, 24*time.Hour, emailVerificationService)
+        lgpdService := NewLGPDService(userRepo, inspRepo, orderRepo, deletionRepo, logRepo, emailSender)
         infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
         infocarService := NewInfocarService(infocarClient, userRepo, 150)
         infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
@@ -90,12 +97,13 @@ func Run() error {
 
         userHandler := httpinterfaces.NewUserHandler(userService)
         authHandler := httpinterfaces.NewAuthHandler(authService, asEmailVerifier(emailVerificationService))
+        lgpdHandler := httpinterfaces.NewLGPDHandler(lgpdService)
         apifullClient := apifull.NewClient(cfg.ApiFullBaseURL, cfg.ApiFullToken)
         apifullService := NewApiFullService(apifullClient, userRepo)
         apifullHandler := httpinterfaces.NewApiFullHandler(apifullService)
 
         catalogHandler := httpinterfaces.NewCatalogHandler(cfg.CatalogMarkup)
-        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware, catalogHandler, infovistHandler, adminHandler, apifullHandler)
+        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware, catalogHandler, infovistHandler, adminHandler, apifullHandler, lgpdHandler)
     } else {
         client, err := firestore.NewClient(cfg.FirebaseProjectID)
         if err != nil {
@@ -106,13 +114,15 @@ func Run() error {
         userRepo := firestore.NewUserRepository(client)
         orderRepo := firestore.NewOrderRepository(client)
         inspRepo := firestore.NewInspectionRepository(client)
-        if cfg.ResendAPIKey != "" {
+        deletionRepo := firestore.NewDeletionRepository(client)
+        logRepo := firestore.NewLogRepository(client)
+        if emailSender != nil {
             verificationRepo := firestore.NewVerificationRepository(client)
-            emailSender := resend.NewClient(cfg.ResendAPIKey)
             emailVerificationService = NewEmailVerificationService(verificationRepo, userRepo, emailSender)
         }
         userService := NewUserService(userRepo)
         authService := NewAuthService(userRepo, cfg.AuthJWTSecret, 24*time.Hour, emailVerificationService)
+        lgpdService := NewLGPDService(userRepo, inspRepo, orderRepo, deletionRepo, logRepo, emailSender)
         infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
         infocarService := NewInfocarService(infocarClient, userRepo, 150)
         infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
@@ -131,12 +141,13 @@ func Run() error {
 
         userHandler := httpinterfaces.NewUserHandler(userService)
         authHandler := httpinterfaces.NewAuthHandler(authService, asEmailVerifier(emailVerificationService))
+        lgpdHandler := httpinterfaces.NewLGPDHandler(lgpdService)
         apifullClient := apifull.NewClient(cfg.ApiFullBaseURL, cfg.ApiFullToken)
         apifullService := NewApiFullService(apifullClient, userRepo)
         apifullHandler := httpinterfaces.NewApiFullHandler(apifullService)
 
         catalogHandler := httpinterfaces.NewCatalogHandler(cfg.CatalogMarkup)
-        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware, catalogHandler, infovistHandler, adminHandler, apifullHandler)
+        httpinterfaces.RegisterRoutes(router, userHandler, authHandler, infocarHandler, paymentHandler, authMiddleware, catalogHandler, infovistHandler, adminHandler, apifullHandler, lgpdHandler)
     }
 
     addr := fmt.Sprintf(":%s", cfg.Port)

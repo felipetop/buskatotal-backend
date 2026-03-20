@@ -2,7 +2,7 @@ package http
 
 import "github.com/gin-gonic/gin"
 
-func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, authHandler *AuthHandler, infocarHandler *InfocarHandler, paymentHandler *PaymentHandler, authMiddleware *AuthMiddleware, catalogHandler *CatalogHandler, infovistHandler *InfovistHandler, adminHandler *AdminHandler, apifullHandler *ApiFullHandler) {
+func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, authHandler *AuthHandler, infocarHandler *InfocarHandler, paymentHandler *PaymentHandler, authMiddleware *AuthMiddleware, catalogHandler *CatalogHandler, infovistHandler *InfovistHandler, adminHandler *AdminHandler, apifullHandler *ApiFullHandler, lgpdHandler *LGPDHandler) {
 
     if authHandler != nil {
         auth := router.Group("/auth")
@@ -24,6 +24,11 @@ func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, authHandler *A
     {
         if authMiddleware != nil {
             users.GET("/:id/balance", authMiddleware.Handler(), userHandler.GetBalance)
+            if lgpdHandler != nil {
+                users.GET("/:id/data", authMiddleware.Handler(), lgpdHandler.GetUserData)
+                users.GET("/:id/data/export", authMiddleware.Handler(), lgpdHandler.ExportUserData)
+                users.POST("/:id/data/deletion-request", authMiddleware.Handler(), lgpdHandler.RequestDeletion)
+            }
         } else {
             users.GET("/:id/balance", userHandler.GetBalance)
         }
@@ -98,6 +103,10 @@ func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, authHandler *A
         {
             admin.GET("/users", adminHandler.ListUsers)
             admin.GET("/users/:id", adminHandler.GetUser)
+            if lgpdHandler != nil {
+                admin.GET("/deletion-requests", lgpdHandler.ListDeletionRequests)
+                admin.PATCH("/deletion-requests/:id", lgpdHandler.ProcessDeletion)
+            }
         }
     }
 }
