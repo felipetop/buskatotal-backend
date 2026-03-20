@@ -241,6 +241,15 @@ func (s *ApiFullService) QueryProduct(ctx context.Context, userID, productKey, v
 		body["cnpj"] = value
 	case "document":
 		body["document"] = value
+		// Some endpoints require the specific "cpf"/"cnpj" field instead of "document"
+		clean := strings.ReplaceAll(value, ".", "")
+		clean = strings.ReplaceAll(clean, "-", "")
+		clean = strings.ReplaceAll(clean, "/", "")
+		if len(clean) == 11 {
+			body["cpf"] = value
+		} else if len(clean) == 14 {
+			body["cnpj"] = value
+		}
 	case "placa":
 		body["placa"] = value
 	case "nome":
