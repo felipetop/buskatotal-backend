@@ -4,7 +4,9 @@
       "Bash(go build:*)",
       "Bash(gcloud run:*)",
       "Bash(gcloud logging:*)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "WebFetch(domain:doc.apifull.com.br)",
+      "WebFetch(domain:www.postman.com)"
     ]
   }
 }
