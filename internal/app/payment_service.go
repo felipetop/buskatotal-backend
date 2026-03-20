@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -176,7 +177,15 @@ func (s *PaymentService) ListOrders(ctx context.Context, userID string) ([]payme
 	if userID == "" {
 		return nil, errors.New("user id is required")
 	}
-	return s.orderRepo.GetByUserID(ctx, userID)
+	orders, err := s.orderRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	// Sort by creation date, most recent first
+	sort.Slice(orders, func(i, j int) bool {
+		return orders[i].CreatedAt.After(orders[j].CreatedAt)
+	})
+	return orders, nil
 }
 
 // Credit keeps backward compatibility for direct/mock credits.
