@@ -55,7 +55,7 @@ func (c *Client) QueryProduct(ctx context.Context, endpoint string, body map[str
 	}
 
 	url := fmt.Sprintf("%s/%s", c.baseURL, endpoint)
-	log.Printf("[apifull] POST %s | body: %s", url, string(payload))
+	log.Printf("[apifull] POST %s", url)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(payload))
 	if err != nil {
 		return nil, fmt.Errorf("apifull %s request: %w", endpoint, err)
@@ -70,7 +70,7 @@ func (c *Client) QueryProduct(ctx context.Context, endpoint string, body map[str
 	defer resp.Body.Close()
 
 	respBody, _ := io.ReadAll(resp.Body)
-	log.Printf("[apifull] RESP %s | status: %d | body: %s", endpoint, resp.StatusCode, string(respBody))
+	log.Printf("[apifull] RESP %s | status: %d", endpoint, resp.StatusCode)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("apifull %s failed (status %d): %s", endpoint, resp.StatusCode, string(respBody))

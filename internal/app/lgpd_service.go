@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"html"
 	"time"
 
 	"buskatotal-backend/internal/domain/email"
@@ -12,8 +13,6 @@ import (
 	"buskatotal-backend/internal/domain/user"
 )
 
-const dpoEmail = "karinbelan43@gmail.com"
-
 type LGPDService struct {
 	userRepo     user.Repository
 	inspRepo     inspection.Repository
@@ -21,6 +20,7 @@ type LGPDService struct {
 	deletionRepo lgpd.DeletionRepository
 	logRepo      lgpd.LogRepository
 	emailSender  email.Sender
+	dpoEmail     string
 }
 
 func NewLGPDService(
@@ -30,7 +30,11 @@ func NewLGPDService(
 	deletionRepo lgpd.DeletionRepository,
 	logRepo lgpd.LogRepository,
 	emailSender email.Sender,
+	dpoEmail string,
 ) *LGPDService {
+	if dpoEmail == "" {
+		dpoEmail = "karinbelan43@gmail.com"
+	}
 	return &LGPDService{
 		userRepo:     userRepo,
 		inspRepo:     inspRepo,
@@ -38,6 +42,7 @@ func NewLGPDService(
 		deletionRepo: deletionRepo,
 		logRepo:      logRepo,
 		emailSender:  emailSender,
+		dpoEmail:     dpoEmail,
 	}
 }
 
@@ -180,19 +185,20 @@ func (s *LGPDService) RequestDeletion(ctx context.Context, userID, reason string
 		go func() {
 			_ = s.emailSender.Send(context.Background(), email.Message{
 				From:    emailFrom,
-				To:      dpoEmail,
+				To:      s.dpoEmail,
 				Subject: "Solicitação de exclusão de dados — BuskaTotal",
 				HTML:    buildDeletionNotifyHTML(u.Name, u.Email, reason),
 			})
 		}()
 
 		// Confirm to user
+		dpo := s.dpoEmail
 		go func() {
 			_ = s.emailSender.Send(context.Background(), email.Message{
 				From:    emailFrom,
 				To:      u.Email,
 				Subject: "Solicitação de exclusão recebida — BuskaTotal",
-				HTML:    buildDeletionConfirmHTML(u.Name),
+				HTML:    buildDeletionConfirmHTML(u.Name, dpo),
 			})
 		}()
 	}
@@ -266,15 +272,15 @@ func buildDeletionNotifyHTML(name, userEmail, reason string) string {
 <head><meta charset="UTF-8"></head>
 <body style="font-family: Arial, sans-serif; padding: 20px;">
   <h2>Solicitação de Exclusão de Dados</h2>
-  <p><strong>Usuário:</strong> ` + name + ` (` + userEmail + `)</p>
-  <p><strong>Motivo:</strong> ` + reason + `</p>
+  <p><strong>Usuário:</strong> ` + html.EscapeString(name) + ` (` + html.EscapeString(userEmail) + `)</p>
+  <p><strong>Motivo:</strong> ` + html.EscapeString(reason) + `</p>
   <p>Prazo legal: 15 dias úteis (Art. 18 LGPD).</p>
   <p>Acesse o painel admin para processar.</p>
 </body>
 </html>`
 }
 
-func buildDeletionConfirmHTML(name string) string {
+func buildDeletionConfirmHTML(name, dpoEmail string) string {
 	return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head><meta charset="UTF-8"></head>
@@ -282,13 +288,13 @@ func buildDeletionConfirmHTML(name string) string {
   <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 40px; text-align: center;">
     <h1 style="color: #1a1a2e; margin-bottom: 8px;">BuskaTotal</h1>
     <p style="color: #555; font-size: 16px;">
-      Olá ` + name + `, sua solicitação de exclusão de dados foi registrada.
+      Olá ` + html.EscapeString(name) + `, sua solicitação de exclusão de dados foi registrada.
     </p>
     <p style="color: #555; font-size: 16px;">
       Seus dados serão removidos em até <strong>15 dias úteis</strong> conforme a LGPD.
     </p>
     <p style="color: #999; font-size: 13px; margin-top: 32px;">
-      Se você não fez esta solicitação, entre em contato: karinbelan43@gmail.com
+      Se você não fez esta solicitação, entre em contato: ` + html.EscapeString(dpoEmail) + `
     </p>
   </div>
 </body>

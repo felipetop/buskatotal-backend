@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -18,12 +19,18 @@ type PaymentService interface {
 }
 
 type PaymentHandler struct {
-	service    PaymentService
-	allowCredit bool // only true in mock/dev mode
+	service       PaymentService
+	allowCredit   bool   // only true in mock/dev mode
+	webhookSecret string // secret token for webhook URL validation
 }
 
 func NewPaymentHandler(service PaymentService, allowCredit bool) *PaymentHandler {
 	return &PaymentHandler{service: service, allowCredit: allowCredit}
+}
+
+// SetWebhookSecret configures a secret token that must be present in webhook calls.
+func (h *PaymentHandler) SetWebhookSecret(secret string) {
+	h.webhookSecret = secret
 }
 
 // ── POST /payments/users/:id/credit ──────────────────────────────────────────
@@ -153,9 +160,18 @@ type picpayWebhookInput struct {
 }
 
 func (h *PaymentHandler) Webhook(c *gin.Context) {
+	// Validate webhook secret token if configured (query param ?token=...)
+	if h.webhookSecret != "" {
+		if c.Query("token") != h.webhookSecret {
+			log.Printf("[webhook] rejected: invalid token from %s", c.ClientIP())
+			c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+			return
+		}
+	}
+
 	var input picpayWebhookInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
 		return
 	}
 
@@ -167,7 +183,8 @@ func (h *PaymentHandler) Webhook(c *gin.Context) {
 
 	if err := h.service.ProcessWebhook(c.Request.Context(), paymentLinkID); err != nil {
 		// Return 200 to avoid PicPay retries for unknown orders; log the error internally.
-		c.JSON(http.StatusOK, gin.H{"ok": false, "error": err.Error()})
+		log.Printf("[webhook] error processing %s: %v", paymentLinkID, err)
+		c.JSON(http.StatusOK, gin.H{"ok": false})
 		return
 	}
 

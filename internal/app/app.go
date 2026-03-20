@@ -89,12 +89,13 @@ func Run() error {
         }
         userService := NewUserService(userRepo)
         authService := NewAuthService(userRepo, cfg.AuthJWTSecret, 24*time.Hour, emailVerificationService)
-        lgpdService := NewLGPDService(userRepo, inspRepo, orderRepo, deletionRepo, logRepo, emailSender)
+        lgpdService := NewLGPDService(userRepo, inspRepo, orderRepo, deletionRepo, logRepo, emailSender, cfg.LGPDDpoEmail)
         infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
         infocarService := NewInfocarService(infocarClient, userRepo, 150)
         infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
         paymentService := NewPaymentService(paymentProvider, orderRepo, userRepo, cfg.AppBaseURL)
         paymentHandler := httpinterfaces.NewPaymentHandler(paymentService, isMockPayment)
+        paymentHandler.SetWebhookSecret(cfg.WebhookSecret)
 
         infovistClient := infovist.NewClient(cfg.InfovistBaseURL, cfg.InfovistEmail, cfg.InfovistPassword, cfg.InfovistAPIToken)
         infovistService := // Custo de venda: INFOVIST (R$10,32) + VISTORIA DIGITAL (R$34,52) = R$44,84 custo × 3x markup = R$134,52 = 13452 centavos
@@ -131,12 +132,13 @@ func Run() error {
         }
         userService := NewUserService(userRepo)
         authService := NewAuthService(userRepo, cfg.AuthJWTSecret, 24*time.Hour, emailVerificationService)
-        lgpdService := NewLGPDService(userRepo, inspRepo, orderRepo, deletionRepo, logRepo, emailSender)
+        lgpdService := NewLGPDService(userRepo, inspRepo, orderRepo, deletionRepo, logRepo, emailSender, cfg.LGPDDpoEmail)
         infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
         infocarService := NewInfocarService(infocarClient, userRepo, 150)
         infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
         paymentService := NewPaymentService(paymentProvider, orderRepo, userRepo, cfg.AppBaseURL)
         paymentHandler := httpinterfaces.NewPaymentHandler(paymentService, isMockPayment)
+        paymentHandler.SetWebhookSecret(cfg.WebhookSecret)
 
         infovistClient := infovist.NewClient(cfg.InfovistBaseURL, cfg.InfovistEmail, cfg.InfovistPassword, cfg.InfovistAPIToken)
         infovistService := // Custo de venda: INFOVIST (R$10,32) + VISTORIA DIGITAL (R$34,52) = R$44,84 custo × 3x markup = R$134,52 = 13452 centavos

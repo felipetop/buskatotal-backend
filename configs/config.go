@@ -30,6 +30,8 @@ type Config struct {
 	ApiFullBaseURL     string  // API Full base URL
 	ResendAPIKey       string  // Resend API key for sending emails
 	CORSAllowedOrigins string  // Comma-separated list of allowed CORS origins
+	WebhookSecret      string  // Secret token for webhook URL validation
+	LGPDDpoEmail       string  // DPO email for LGPD deletion notifications
 }
 
 func Load() Config {
@@ -63,6 +65,8 @@ func Load() Config {
 		// RESEND_API_KEY deve ser definido em variável de ambiente segura.
 		ResendAPIKey:       getEnv("RESEND_API_KEY", ""),
 		CORSAllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "https://www.buskatotal.com.br,https://buskatotal.com.br"),
+		WebhookSecret:      getEnv("WEBHOOK_SECRET", ""),
+		LGPDDpoEmail:       getEnv("LGPD_DPO_EMAIL", "karinbelan43@gmail.com"),
 	}
 }
 

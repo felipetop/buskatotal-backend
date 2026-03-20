@@ -1,17 +1,24 @@
 package http
 
-import "github.com/gin-gonic/gin"
+import (
+	"time"
+
+	"github.com/gin-gonic/gin"
+)
 
 func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, authHandler *AuthHandler, infocarHandler *InfocarHandler, paymentHandler *PaymentHandler, authMiddleware *AuthMiddleware, catalogHandler *CatalogHandler, infovistHandler *InfovistHandler, adminHandler *AdminHandler, apifullHandler *ApiFullHandler, lgpdHandler *LGPDHandler) {
+
+    // Rate limit: 10 requests per minute on auth endpoints
+    authLimiter := NewRateLimiter(10, 1*time.Minute)
 
     if authHandler != nil {
         auth := router.Group("/auth")
         {
-            auth.POST("/register", authHandler.Register)
-            auth.POST("/login", authHandler.Login)
+            auth.POST("/register", authLimiter.Handler(), authHandler.Register)
+            auth.POST("/login", authLimiter.Handler(), authHandler.Login)
             auth.GET("/verify-email", authHandler.VerifyEmail)
-            auth.POST("/forgot-password", authHandler.ForgotPassword)
-            auth.POST("/reset-password", authHandler.ResetPassword)
+            auth.POST("/forgot-password", authLimiter.Handler(), authHandler.ForgotPassword)
+            auth.POST("/reset-password", authLimiter.Handler(), authHandler.ResetPassword)
         }
         if authMiddleware != nil {
             authProtected := auth.Group("")

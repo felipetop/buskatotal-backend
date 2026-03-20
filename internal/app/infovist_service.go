@@ -85,6 +85,15 @@ func (s *InfovistService) ViewInspection(ctx context.Context, userID, protocol s
 		return nil, errors.New("protocol is required")
 	}
 
+	// Verify ownership — reject if not found or wrong user
+	insp, inspErr := s.inspRepo.GetByProtocol(ctx, protocol)
+	if inspErr != nil {
+		return nil, errors.New("inspection not found")
+	}
+	if insp.UserID != userID {
+		return nil, errors.New("inspection not found")
+	}
+
 	token, err := s.getToken(ctx)
 	if err != nil {
 		return nil, err
@@ -115,6 +124,15 @@ func (s *InfovistService) GetReportV1(ctx context.Context, userID, protocol stri
 		return nil, errors.New("protocol is required")
 	}
 
+	// Verify ownership — reject if not found or wrong user
+	insp, inspErr := s.inspRepo.GetByProtocol(ctx, protocol)
+	if inspErr != nil {
+		return nil, errors.New("inspection not found")
+	}
+	if insp.UserID != userID {
+		return nil, errors.New("inspection not found")
+	}
+
 	token, err := s.getToken(ctx)
 	if err != nil {
 		return nil, err
@@ -129,6 +147,15 @@ func (s *InfovistService) GetReportV2(ctx context.Context, userID, protocol stri
 	}
 	if protocol == "" {
 		return nil, errors.New("protocol is required")
+	}
+
+	// Verify ownership — reject if not found or wrong user
+	insp2, inspErr2 := s.inspRepo.GetByProtocol(ctx, protocol)
+	if inspErr2 != nil {
+		return nil, errors.New("inspection not found")
+	}
+	if insp2.UserID != userID {
+		return nil, errors.New("inspection not found")
 	}
 
 	token, err := s.getToken(ctx)
