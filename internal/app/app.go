@@ -16,6 +16,7 @@ import (
     "buskatotal-backend/internal/infra/infocar"
     "buskatotal-backend/internal/infra/infovist"
     "buskatotal-backend/internal/infra/memory"
+    "buskatotal-backend/internal/infra/resend"
     authinfra "buskatotal-backend/internal/infra/auth"
     paymentinfra "buskatotal-backend/internal/infra/payment"
     httpinterfaces "buskatotal-backend/internal/interfaces/http"
@@ -60,12 +61,19 @@ func Run() error {
         paymentProvider = paymentinfra.NewMockProvider()
     }
 
+    var emailVerificationService *EmailVerificationService
+
     if cfg.UseMockDB || cfg.FirebaseProjectID == "" {
         userRepo := memory.NewUserRepository()
         orderRepo := memory.NewOrderRepository()
         inspRepo := memory.NewInspectionRepository()
+        if cfg.ResendAPIKey != "" {
+            verificationRepo := memory.NewVerificationRepository()
+            emailSender := resend.NewClient(cfg.ResendAPIKey)
+            emailVerificationService = NewEmailVerificationService(verificationRepo, userRepo, emailSender)
+        }
         userService := NewUserService(userRepo)
-        authService := NewAuthService(userRepo, cfg.AuthJWTSecret, 24*time.Hour)
+        authService := NewAuthService(userRepo, cfg.AuthJWTSecret, 24*time.Hour, emailVerificationService)
         infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
         infocarService := NewInfocarService(infocarClient, userRepo, 150)
         infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
@@ -81,7 +89,7 @@ func Run() error {
         adminHandler := httpinterfaces.NewAdminHandler(adminService)
 
         userHandler := httpinterfaces.NewUserHandler(userService)
-        authHandler := httpinterfaces.NewAuthHandler(authService)
+        authHandler := httpinterfaces.NewAuthHandler(authService, asEmailVerifier(emailVerificationService))
         apifullClient := apifull.NewClient(cfg.ApiFullBaseURL, cfg.ApiFullToken)
         apifullService := NewApiFullService(apifullClient, userRepo)
         apifullHandler := httpinterfaces.NewApiFullHandler(apifullService)
@@ -98,8 +106,13 @@ func Run() error {
         userRepo := firestore.NewUserRepository(client)
         orderRepo := firestore.NewOrderRepository(client)
         inspRepo := firestore.NewInspectionRepository(client)
+        if cfg.ResendAPIKey != "" {
+            verificationRepo := firestore.NewVerificationRepository(client)
+            emailSender := resend.NewClient(cfg.ResendAPIKey)
+            emailVerificationService = NewEmailVerificationService(verificationRepo, userRepo, emailSender)
+        }
         userService := NewUserService(userRepo)
-        authService := NewAuthService(userRepo, cfg.AuthJWTSecret, 24*time.Hour)
+        authService := NewAuthService(userRepo, cfg.AuthJWTSecret, 24*time.Hour, emailVerificationService)
         infocarClient := infocar.NewClient(cfg.InfocarBaseURL, cfg.InfocarIDKey, cfg.InfocarUser, cfg.InfocarPassword)
         infocarService := NewInfocarService(infocarClient, userRepo, 150)
         infocarHandler := httpinterfaces.NewInfocarHandler(infocarService)
@@ -117,7 +130,7 @@ func Run() error {
         adminHandler := httpinterfaces.NewAdminHandler(adminService)
 
         userHandler := httpinterfaces.NewUserHandler(userService)
-        authHandler := httpinterfaces.NewAuthHandler(authService)
+        authHandler := httpinterfaces.NewAuthHandler(authService, asEmailVerifier(emailVerificationService))
         apifullClient := apifull.NewClient(cfg.ApiFullBaseURL, cfg.ApiFullToken)
         apifullService := NewApiFullService(apifullClient, userRepo)
         apifullHandler := httpinterfaces.NewApiFullHandler(apifullService)
@@ -128,6 +141,14 @@ func Run() error {
 
     addr := fmt.Sprintf(":%s", cfg.Port)
     return router.Run(addr)
+}
+
+// asEmailVerifier converts a possibly-nil *EmailVerificationService to a properly nil interface.
+func asEmailVerifier(svc *EmailVerificationService) httpinterfaces.EmailVerificationService {
+    if svc == nil {
+        return nil
+    }
+    return svc
 }
 
 func startReconciliationWorker(svc *PaymentService) {

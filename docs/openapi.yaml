@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: BuskaTotal Backend API
   description: |
-    API para gestão de usuários, consultas Infocar (9 produtos), consultas API Full (33 produtos), vistorias digitais Infovist e pagamentos via PicPay.
+    API para gestão de usuários, consultas Infocar (9 produtos), consultas API Full (33 produtos), vistorias digitais Infovist, pagamentos via PicPay e verificação de e-mail via Resend.
 
     ## Autenticação
     - `AUTH_MODE=mock` (local): use o header `X-User-Id` com o ID do usuário.
@@ -29,6 +29,7 @@ info:
     |---|---|
     | `PICPAY_TOKEN` | Token da conta PicPay (x-picpay-token). Vazio = mock. |
     | `APP_BASE_URL` | URL pública do servidor (ex: `https://api.buskatotal.com`). Usada para montar o callbackUrl. |
+    | `RESEND_API_KEY` | API key do Resend para envio de e-mails de verificação. Vazio = verificação desabilitada. |
 
   version: 2.0.0
 servers:
@@ -61,7 +62,13 @@ paths:
       summary: Registrar usuário
       tags: [Autenticação]
       description: |
-        Cria uma conta e retorna o JWT.
+        Cria uma conta e retorna o JWT. O usuário é criado com `emailVerified: false`.
+
+        Se a variável `RESEND_API_KEY` estiver configurada, um e-mail de verificação é enviado
+        automaticamente para o endereço cadastrado (envio assíncrono — não bloqueia a resposta).
+
+        O e-mail contém um link para `https://buskatotal.com.br/verify?token=TOKEN` que deve
+        redirecionar para `GET /auth/verify-email?token=TOKEN`.
 
         **Regras de senha:**
         - Mínimo 10 caracteres
@@ -81,13 +88,93 @@ paths:
               password: "Senha@1234"
       responses:
         "201":
-          description: Usuário registrado
+          description: Usuário registrado (emailVerified=false até confirmação)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthResponse"
         "400":
           description: "Erro de validação (ex: senha fraca, email já cadastrado)"
+
+  /auth/verify-email:
+    get:
+      summary: Verificar e-mail do usuário
+      tags: [Autenticação]
+      description: |
+        Valida o token de verificação e marca o e-mail do usuário como verificado (`emailVerified: true`).
+
+        **Token:**
+        - 256-bit gerado com `crypto/rand` (64 caracteres hexadecimais)
+        - Expira em **24 horas** após o envio
+        - Uso único — após verificação, o token é invalidado
+
+        **Códigos de erro:**
+        - `404` — token não encontrado (inválido ou já removido)
+        - `410` — token expirado (gerar novo via novo registro ou endpoint de reenvio)
+        - `409` — token já utilizado (e-mail já verificado)
+        - `503` — verificação de e-mail não configurada (sem `RESEND_API_KEY`)
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Token de verificação recebido por e-mail (64 caracteres hex)
+          example: "a1b2c3d4e5f6..."
+      responses:
+        "200":
+          description: E-mail verificado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "e-mail verificado com sucesso"
+        "400":
+          description: Token não informado
+        "404":
+          description: Token não encontrado
+        "409":
+          description: Token já utilizado
+        "410":
+          description: Token expirado
+        "503":
+          description: Verificação de e-mail não configurada no servidor
+
+  /auth/resend-verification:
+    post:
+      summary: Reenviar e-mail de verificação
+      tags: [Autenticação]
+      description: |
+        Reenvia o e-mail de verificação para o usuário autenticado.
+
+        **Requer autenticação** — o usuário precisa estar logado (JWT).
+
+        Gera um novo token (invalida o anterior) e envia um novo e-mail.
+        Retorna `409` se o e-mail já foi verificado.
+      parameters:
+        - $ref: "#/components/parameters/JWTAuthHeader"
+      responses:
+        "200":
+          description: E-mail de verificação reenviado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "e-mail de verificação reenviado"
+        "401":
+          description: Não autenticado
+        "404":
+          description: Usuário não encontrado
+        "409":
+          description: E-mail já verificado
+        "503":
+          description: Verificação de e-mail não configurada no servidor
 
   /auth/login:
     post:
@@ -891,6 +978,9 @@ components:
           type: integer
           format: int64
           description: "Saldo atual em centavos (ex: 2990 = R$ 29,90)"
+        emailVerified:
+          type: boolean
+          description: "Indica se o e-mail foi verificado via link de confirmação. Inicia como `false` no registro."
         createdAt:
           type: string
           format: date-time

@@ -348,8 +348,10 @@ Checklist de todas as proteções aplicadas em cada endpoint da API.
 
 | Endpoint | Auth | Proteções |
 |---|---|---|
-| `POST /auth/register` | Pública | Validação de senha forte (10 chars, maiúscula, minúscula, número, especial) |
+| `POST /auth/register` | Pública | Validação de senha forte, envio de e-mail de verificação (async), `emailVerified=false` até confirmação |
 | `POST /auth/login` | Pública | Retorna 401 para credenciais inválidas, hash bcrypt |
+| `GET /auth/verify-email` | Pública | Token 256-bit (`crypto/rand`), expiração 24h, uso único, códigos HTTP específicos por erro |
+| `POST /auth/resend-verification` | JWT | Requer autenticação, recusa se já verificado (`409`), gera novo token (invalida anterior) |
 
 ### Usuários
 
@@ -476,9 +478,116 @@ go test ./internal/infra/memory/ ./internal/app/ -v
 
 ---
 
+## 7. Verificação de E-mail
+
+### O que é
+
+Verificação de e-mail garante que o endereço informado no cadastro **realmente pertence ao usuário**. Sem isso, qualquer pessoa pode cadastrar o e-mail de outra pessoa.
+
+### O risco sem verificação
+
+- **Cadastro com e-mail alheio** — alguém usa o e-mail de outra pessoa para criar uma conta
+- **Spam** — bots criam contas com e-mails falsos
+- **Recuperação de conta** — sem verificação, não há garantia de que o e-mail de recuperação é válido
+- **Reputação do domínio** — enviar e-mails para endereços inválidos prejudica a reputação do remetente
+
+### Como foi implementado
+
+```
+1. Usuário faz POST /auth/register
+2. Backend cria a conta com emailVerified=false
+3. Backend gera token seguro (256-bit via crypto/rand)
+4. Backend salva token na coleção verification_tokens (Firestore)
+5. Backend envia e-mail via Resend com link de verificação (assíncrono)
+6. Usuário clica no link → GET /auth/verify-email?token=TOKEN
+7. Backend valida token → marca emailVerified=true
+```
+
+#### Geração do token
+
+```go
+func generateSecureToken() (string, error) {
+    b := make([]byte, 32) // 256 bits
+    if _, err := rand.Read(b); err != nil {
+        return "", err
+    }
+    return hex.EncodeToString(b), nil // 64 caracteres hex
+}
+```
+
+- **`crypto/rand`** — gerador criptograficamente seguro (não usa `math/rand`, que é previsível)
+- **256 bits** — 2^256 combinações possíveis (impossível adivinhar por força bruta)
+- **Hex encoding** — resultado de 64 caracteres, seguro para uso em URLs
+
+#### Proteções do token
+
+| Proteção | Como funciona |
+|---|---|
+| **Expiração** | Token expira em 24 horas. Após isso, retorna `410 Gone` |
+| **Uso único** | Após verificação, token é marcado como `used=true`. Reutilização retorna `409 Conflict` |
+| **Substituição** | Ao gerar novo token, todos os tokens anteriores do usuário são deletados |
+| **Não previsível** | `crypto/rand` usa entropia do SO — não há padrão ou sequência |
+
+#### Envio assíncrono
+
+O envio do e-mail é feito em goroutine separada:
+
+```go
+go func() {
+    if err := s.emailVerification.GenerateAndSend(ctx, created.ID, created.Email); err != nil {
+        log.Printf("auth: failed to send verification email to %s: %v", created.Email, err)
+    }
+}()
+```
+
+**Por quê?** Se o Resend estiver fora do ar, o registro do usuário não deve falhar. O usuário pode solicitar reenvio depois.
+
+#### Envio via Resend (HTTP puro)
+
+O e-mail é enviado via HTTP POST para `https://api.resend.com/emails`, sem SDK:
+
+```go
+req.Header.Set("Authorization", "Bearer "+c.apiKey)
+req.Header.Set("Content-Type", "application/json")
+```
+
+**Por que HTTP puro e não SDK?**
+- Menos uma dependência no `go.mod`
+- A API do Resend é simples (um único endpoint)
+- Controle total sobre timeouts e retry
+
+#### Armazenamento
+
+Tokens são armazenados na coleção `verification_tokens` do Firestore (ou in-memory em dev):
+
+```go
+type Token struct {
+    ID        string    // ID do documento
+    UserID    string    // Referência ao usuário
+    Token     string    // Token hex de 64 caracteres
+    Used      bool      // Já foi usado?
+    ExpiresAt time.Time // Quando expira
+    CreatedAt time.Time // Quando foi criado
+}
+```
+
+### Conceitos relacionados
+
+- **Token de verificação** — string aleatória associada a uma ação (verificar e-mail, resetar senha). Diferente de JWT porque não carrega dados — é apenas uma chave de lookup.
+- **`crypto/rand` vs `math/rand`** — `crypto/rand` usa entropia do sistema operacional (é seguro). `math/rand` usa um PRNG determinístico (é previsível se a seed for conhecida).
+- **Graceful degradation** — se o serviço de e-mail falhar, o sistema continua funcionando (o registro não é bloqueado).
+
+### Variáveis de ambiente
+
+| Variável | Descrição |
+|---|---|
+| `RESEND_API_KEY` | API key do Resend. Sem essa variável, a verificação de e-mail é desabilitada e o endpoint retorna `503`. |
+
+---
+
 ## Melhorias futuras
 
-### 7. Rate Limiting por Usuário
+### 8. Rate Limiting por Usuário
 
 #### O que é
 
@@ -589,7 +698,7 @@ func (rl *RedisRateLimiter) Allow(ctx context.Context, userID string) bool {
 
 ---
 
-### 8. Logging Estruturado para Auditoria
+### 9. Logging Estruturado para Auditoria
 
 #### O que é
 
@@ -718,7 +827,7 @@ log.Info().
 
 ---
 
-### 9. Testes de Integração com API Real
+### 10. Testes de Integração com API Real
 
 #### O que é
 

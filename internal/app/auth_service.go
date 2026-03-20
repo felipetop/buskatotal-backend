@@ -3,6 +3,7 @@ package app
 import (
     "context"
     "errors"
+    "log"
     "regexp"
     "time"
 
@@ -38,13 +39,19 @@ var adminEmails = map[string]bool{
 }
 
 type AuthService struct {
-    repo      user.Repository
-    jwtSecret []byte
-    tokenTTL  time.Duration
+    repo              user.Repository
+    jwtSecret         []byte
+    tokenTTL          time.Duration
+    emailVerification *EmailVerificationService
 }
 
-func NewAuthService(repo user.Repository, jwtSecret string, tokenTTL time.Duration) *AuthService {
-    return &AuthService{repo: repo, jwtSecret: []byte(jwtSecret), tokenTTL: tokenTTL}
+func NewAuthService(repo user.Repository, jwtSecret string, tokenTTL time.Duration, emailVerification *EmailVerificationService) *AuthService {
+    return &AuthService{
+        repo:              repo,
+        jwtSecret:         []byte(jwtSecret),
+        tokenTTL:          tokenTTL,
+        emailVerification: emailVerification,
+    }
 }
 
 func (s *AuthService) Register(ctx context.Context, name, email, password string) (user.User, string, error) {
@@ -75,13 +82,23 @@ func (s *AuthService) Register(ctx context.Context, name, email, password string
     }
 
     created, err := s.repo.Create(ctx, user.User{
-        Name:         name,
-        Email:        email,
-        Role:         role,
-        PasswordHash: string(hash),
+        Name:          name,
+        Email:         email,
+        Role:          role,
+        PasswordHash:  string(hash),
+        EmailVerified: false,
     })
     if err != nil {
         return user.User{}, "", err
+    }
+
+    // Send verification email asynchronously — registration should not fail if email fails
+    if s.emailVerification != nil {
+        go func() {
+            if err := s.emailVerification.GenerateAndSend(context.Background(), created.ID, created.Email); err != nil {
+                log.Printf("auth: failed to send verification email to %s: %v", created.Email, err)
+            }
+        }()
     }
 
     token, err := s.generateToken(created.ID, created.Role)
@@ -118,6 +135,23 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (user.U
     }
 
     return entity, token, nil
+}
+
+func (s *AuthService) ResendVerification(ctx context.Context, userID string) error {
+    if s.emailVerification == nil {
+        return errors.New("email verification not configured")
+    }
+
+    entity, err := s.repo.GetByID(ctx, userID)
+    if err != nil {
+        return errors.New("user not found")
+    }
+
+    if entity.EmailVerified {
+        return errors.New("email already verified")
+    }
+
+    return s.emailVerification.GenerateAndSend(ctx, entity.ID, entity.Email)
 }
 
 func (s *AuthService) generateToken(userID, role string) (string, error) {

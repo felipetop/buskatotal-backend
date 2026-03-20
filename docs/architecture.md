@@ -31,6 +31,7 @@ docs/                 ← documentação (OpenAPI, ADRs, este arquivo)
 | Componente | Motivo |
 |---|---|
 | Autenticação JWT | Stateless — múltiplas instâncias sem sessão compartilhada |
+| Verificação de e-mail | Resend via HTTP (sem SDK), token 256-bit, expiração 24h |
 | Handlers HTTP | Sem estado interno — horizontalmente escalável |
 | Firestore | Banco gerenciado pelo GCP, escala automática |
 | PicPay | Processamento de pagamento delegado a serviço externo |
@@ -174,3 +175,6 @@ Sem logs estruturados. Erros são retornados ao cliente mas não registrados no 
 | 2026-03 | MockProvider ativado sem PICPAY_TOKEN | Desenvolvimento e testes locais sem depender de credenciais reais |
 | 2026-03 | Webhook re-verifica status na API PicPay | Nunca confiar no payload do webhook — segurança contra chamadas forjadas |
 | 2026-03 | Saldo em centavos (int64) | Evita erros de ponto flutuante em operações financeiras |
+| 2026-03 | Verificação de e-mail via Resend (HTTP) | Domínio já verificado, API simples, sem SDK — HTTP puro com `net/http`. Token 256-bit via `crypto/rand`, expiração 24h |
+| 2026-03 | Envio de verificação assíncrono | Falha no envio de e-mail não deve bloquear o registro do usuário |
+| 2026-03 | Coleção `verification_tokens` no Firestore | Separação clara de responsabilidades — tokens de verificação não poluem a coleção `users` |
