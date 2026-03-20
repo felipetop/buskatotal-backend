@@ -176,6 +176,95 @@ paths:
         "503":
           description: Verificação de e-mail não configurada no servidor
 
+  /auth/forgot-password:
+    post:
+      summary: Solicitar redefinição de senha
+      tags: [Autenticação]
+      description: |
+        Envia um e-mail com link para redefinir a senha.
+
+        **Segurança:** sempre retorna `200` independente de o e-mail existir ou não.
+        Isso evita que um atacante descubra quais e-mails estão cadastrados.
+
+        O link enviado aponta para `https://buskatotal.com.br/reset-password?token=TOKEN`.
+        O token expira em **1 hora**.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+            example:
+              email: "joao@email.com"
+      responses:
+        "200":
+          description: Resposta fixa (não revela se o e-mail existe)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "se o e-mail estiver cadastrado, você receberá um link para redefinir sua senha"
+        "400":
+          description: E-mail não informado
+
+  /auth/reset-password:
+    post:
+      summary: Redefinir senha com token
+      tags: [Autenticação]
+      description: |
+        Valida o token de redefinição e altera a senha do usuário.
+
+        **Token:** 256-bit, expira em 1 hora, uso único.
+
+        A nova senha deve seguir as mesmas regras do registro:
+        - Mínimo 10 caracteres
+        - 1 letra maiúscula, 1 minúscula, 1 número, 1 caractere especial
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, new_password]
+              properties:
+                token:
+                  type: string
+                  description: Token recebido por e-mail
+                new_password:
+                  type: string
+                  format: password
+                  description: Nova senha (mesmas regras do registro)
+            example:
+              token: "a1b2c3d4..."
+              new_password: "NovaSenha@123"
+      responses:
+        "200":
+          description: Senha redefinida com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "senha redefinida com sucesso"
+        "400":
+          description: "Dados inválidos (token/senha ausentes, senha fraca)"
+        "404":
+          description: Token não encontrado
+        "409":
+          description: Token já utilizado
+        "410":
+          description: Token expirado
+
   /auth/login:
     post:
       summary: Login

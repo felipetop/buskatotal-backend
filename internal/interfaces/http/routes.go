@@ -10,6 +10,8 @@ func RegisterRoutes(router *gin.Engine, userHandler *UserHandler, authHandler *A
             auth.POST("/register", authHandler.Register)
             auth.POST("/login", authHandler.Login)
             auth.GET("/verify-email", authHandler.VerifyEmail)
+            auth.POST("/forgot-password", authHandler.ForgotPassword)
+            auth.POST("/reset-password", authHandler.ResetPassword)
         }
         if authMiddleware != nil {
             authProtected := auth.Group("")

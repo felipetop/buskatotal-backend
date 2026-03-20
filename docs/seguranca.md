@@ -352,6 +352,8 @@ Checklist de todas as proteções aplicadas em cada endpoint da API.
 | `POST /auth/login` | Pública | Retorna 401 para credenciais inválidas, hash bcrypt |
 | `GET /auth/verify-email` | Pública | Token 256-bit (`crypto/rand`), expiração 24h, uso único, códigos HTTP específicos por erro |
 | `POST /auth/resend-verification` | JWT | Requer autenticação, recusa se já verificado (`409`), gera novo token (invalida anterior) |
+| `POST /auth/forgot-password` | Pública | **Nunca revela se o e-mail existe** (sempre 200). Token 256-bit, expiração 1h |
+| `POST /auth/reset-password` | Pública | Valida token + senha forte, uso único, altera hash bcrypt |
 
 ### Usuários
 

@@ -20,6 +20,8 @@ type AuthService interface {
     Register(ctx context.Context, name, email, password string) (user.User, string, error)
     Login(ctx context.Context, email, password string) (user.User, string, error)
     ResendVerification(ctx context.Context, userID string) error
+    ForgotPassword(ctx context.Context, email string) error
+    ResetPassword(ctx context.Context, token, newPassword string) error
 }
 
 type EmailVerificationService interface {
@@ -129,4 +131,51 @@ func (h *AuthHandler) ResendVerification(c *gin.Context) {
     }
 
     c.JSON(http.StatusOK, gin.H{"message": "e-mail de verificação reenviado"})
+}
+
+func (h *AuthHandler) ForgotPassword(c *gin.Context) {
+    var input struct {
+        Email string `json:"email"`
+    }
+    if err := c.ShouldBindJSON(&input); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+
+    if input.Email == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "email is required"})
+        return
+    }
+
+    // Always return success — never reveal if the email exists
+    _ = h.service.ForgotPassword(c.Request.Context(), input.Email)
+
+    c.JSON(http.StatusOK, gin.H{"message": "se o e-mail estiver cadastrado, você receberá um link para redefinir sua senha"})
+}
+
+func (h *AuthHandler) ResetPassword(c *gin.Context) {
+    var input struct {
+        Token       string `json:"token"`
+        NewPassword string `json:"new_password"`
+    }
+    if err := c.ShouldBindJSON(&input); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+
+    err := h.service.ResetPassword(c.Request.Context(), input.Token, input.NewPassword)
+    if err != nil {
+        status := http.StatusBadRequest
+        if errors.Is(err, verification.ErrTokenNotFound) {
+            status = http.StatusNotFound
+        } else if errors.Is(err, verification.ErrTokenExpired) {
+            status = http.StatusGone
+        } else if errors.Is(err, verification.ErrTokenUsed) {
+            status = http.StatusConflict
+        }
+        c.JSON(status, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"message": "senha redefinida com sucesso"})
 }

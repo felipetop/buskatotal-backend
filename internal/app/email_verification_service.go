@@ -14,10 +14,12 @@ import (
 )
 
 const (
-	tokenBytes    = 32 // 256-bit token
-	tokenTTLHours = 24
-	emailFrom     = "BuskaTotal <no-reply@buskatotal.com.br>"
-	verifyBaseURL = "https://buskatotal.com.br/verify"
+	tokenBytes          = 32 // 256-bit token
+	tokenTTLHours       = 24
+	resetTokenTTLHours  = 1 // password reset tokens expire faster
+	emailFrom           = "BuskaTotal <no-reply@buskatotal.com.br>"
+	verifyBaseURL       = "https://buskatotal.com.br/verify"
+	resetPasswordURL    = "https://buskatotal.com.br/reset-password"
 )
 
 type EmailVerificationService struct {
@@ -111,12 +113,95 @@ func (s *EmailVerificationService) Verify(ctx context.Context, tokenStr string) 
 	return nil
 }
 
+// GenerateAndSendPasswordReset creates a token and sends a password reset email.
+func (s *EmailVerificationService) GenerateAndSendPasswordReset(ctx context.Context, userID, userEmail string) error {
+	if err := s.verificationRepo.DeleteByUserID(ctx, userID); err != nil {
+		log.Printf("password_reset: failed to delete old tokens for user %s: %v", userID, err)
+	}
+
+	tokenStr, err := generateSecureToken()
+	if err != nil {
+		return fmt.Errorf("password_reset: generate token: %w", err)
+	}
+
+	token := verification.Token{
+		UserID:    userID,
+		Token:     tokenStr,
+		ExpiresAt: time.Now().Add(resetTokenTTLHours * time.Hour),
+	}
+
+	if _, err := s.verificationRepo.Create(ctx, token); err != nil {
+		return fmt.Errorf("password_reset: save token: %w", err)
+	}
+
+	resetLink := fmt.Sprintf("%s?token=%s", resetPasswordURL, tokenStr)
+
+	msg := email.Message{
+		From:    emailFrom,
+		To:      userEmail,
+		Subject: "Redefinir senha — BuskaTotal",
+		HTML:    buildPasswordResetHTML(resetLink),
+	}
+
+	if err := s.emailSender.Send(ctx, msg); err != nil {
+		return fmt.Errorf("password_reset: send email: %w", err)
+	}
+
+	return nil
+}
+
+// ValidateAndConsume validates a token and returns the associated userID. The token is marked as used.
+func (s *EmailVerificationService) ValidateAndConsume(ctx context.Context, tokenStr string) (string, error) {
+	token, err := s.verificationRepo.GetByToken(ctx, tokenStr)
+	if err != nil {
+		return "", verification.ErrTokenNotFound
+	}
+
+	if token.Used {
+		return "", verification.ErrTokenUsed
+	}
+
+	if token.IsExpired() {
+		return "", verification.ErrTokenExpired
+	}
+
+	if err := s.verificationRepo.MarkUsed(ctx, token.ID); err != nil {
+		return "", fmt.Errorf("password_reset: mark used: %w", err)
+	}
+
+	return token.UserID, nil
+}
+
 func generateSecureToken() (string, error) {
 	b := make([]byte, tokenBytes)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
 	return hex.EncodeToString(b), nil
+}
+
+func buildPasswordResetHTML(link string) string {
+	return fmt.Sprintf(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"></head>
+<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+  <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 40px; text-align: center;">
+    <h1 style="color: #1a1a2e; margin-bottom: 8px;">BuskaTotal</h1>
+    <p style="color: #555; font-size: 16px; margin-bottom: 24px;">
+      Você solicitou a redefinição da sua senha. Clique no botão abaixo para criar uma nova senha.
+    </p>
+    <a href="%s"
+       style="display: inline-block; background-color: #dc2626; color: #ffffff; text-decoration: none;
+              padding: 14px 32px; border-radius: 6px; font-size: 16px; font-weight: bold;">
+      Redefinir Senha
+    </a>
+    <p style="color: #999; font-size: 13px; margin-top: 32px;">
+      Este link expira em 1 hora.<br>
+      Se você não solicitou a redefinição, ignore este e-mail. Sua senha não será alterada.
+    </p>
+  </div>
+</body>
+</html>`, link)
 }
 
 func buildVerificationHTML(link string) string {

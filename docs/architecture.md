@@ -178,3 +178,5 @@ Sem logs estruturados. Erros são retornados ao cliente mas não registrados no 
 | 2026-03 | Verificação de e-mail via Resend (HTTP) | Domínio já verificado, API simples, sem SDK — HTTP puro com `net/http`. Token 256-bit via `crypto/rand`, expiração 24h |
 | 2026-03 | Envio de verificação assíncrono | Falha no envio de e-mail não deve bloquear o registro do usuário |
 | 2026-03 | Coleção `verification_tokens` no Firestore | Separação clara de responsabilidades — tokens de verificação não poluem a coleção `users` |
+| 2026-03 | Recuperação de senha com token de 1h | Token mais curto que verificação (1h vs 24h) — reset de senha é operação mais sensível |
+| 2026-03 | `forgot-password` sempre retorna 200 | Nunca revelar se um e-mail está cadastrado — previne user enumeration |

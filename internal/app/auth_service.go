@@ -137,6 +137,64 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (user.U
     return entity, token, nil
 }
 
+func (s *AuthService) ForgotPassword(ctx context.Context, emailAddr string) error {
+    if s.emailVerification == nil {
+        return errors.New("email service not configured")
+    }
+
+    if emailAddr == "" {
+        return errors.New("email is required")
+    }
+
+    entity, err := s.repo.GetByEmail(ctx, emailAddr)
+    if err != nil {
+        // Never reveal whether the email exists — always return success
+        return nil
+    }
+
+    if err := s.emailVerification.GenerateAndSendPasswordReset(ctx, entity.ID, entity.Email); err != nil {
+        log.Printf("auth: failed to send password reset email to %s: %v", emailAddr, err)
+    }
+
+    return nil
+}
+
+func (s *AuthService) ResetPassword(ctx context.Context, tokenStr, newPassword string) error {
+    if s.emailVerification == nil {
+        return errors.New("email service not configured")
+    }
+
+    if tokenStr == "" || newPassword == "" {
+        return errors.New("token and new password are required")
+    }
+
+    if err := validatePassword(newPassword); err != nil {
+        return err
+    }
+
+    userID, err := s.emailVerification.ValidateAndConsume(ctx, tokenStr)
+    if err != nil {
+        return err
+    }
+
+    hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+    if err != nil {
+        return errors.New("could not hash password")
+    }
+
+    entity, err := s.repo.GetByID(ctx, userID)
+    if err != nil {
+        return errors.New("user not found")
+    }
+
+    entity.PasswordHash = string(hash)
+    if _, err := s.repo.Update(ctx, entity); err != nil {
+        return errors.New("could not update password")
+    }
+
+    return nil
+}
+
 func (s *AuthService) ResendVerification(ctx context.Context, userID string) error {
     if s.emailVerification == nil {
         return errors.New("email verification not configured")
