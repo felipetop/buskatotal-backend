@@ -183,7 +183,7 @@ var ApiFullProducts = map[string]ApiFullProductConfig{
 	"acoes-processos": {
 		Key: "acoes-processos", Name: "Ações e processos judiciais",
 		Endpoint: "r-acoes-e-processos-judiciais", Link: "r-acoes-e-processos-judiciais",
-		InputType: "document", SaleCents: 1242,
+		InputType: "cpf", SaleCents: 1242,
 	},
 	"dossie-juridico": {
 		Key: "dossie-juridico", Name: "Dossiê Jurídico",
