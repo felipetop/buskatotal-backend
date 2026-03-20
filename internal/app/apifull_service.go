@@ -183,7 +183,7 @@ var ApiFullProducts = map[string]ApiFullProductConfig{
 	"acoes-processos": {
 		Key: "acoes-processos", Name: "Ações e processos judiciais",
 		Endpoint: "r-acoes-e-processos-judiciais", Link: "r-acoes-e-processos-judiciais",
-		InputType: "document", SaleCents: 1242,
+		InputType: "cpf", SaleCents: 1242,
 	},
 	"dossie-juridico": {
 		Key: "dossie-juridico", Name: "Dossiê Jurídico",
@@ -193,7 +193,7 @@ var ApiFullProducts = map[string]ApiFullProductConfig{
 	"cndt": {
 		Key: "cndt", Name: "Certidão Nacional de Débitos Trabalhistas",
 		Endpoint: "ic-cndt", Link: "ic-cndt",
-		InputType: "document", SaleCents: 2160,
+		InputType: "cpf", SaleCents: 2160,
 	},
 }
 
@@ -241,15 +241,6 @@ func (s *ApiFullService) QueryProduct(ctx context.Context, userID, productKey, v
 		body["cnpj"] = value
 	case "document":
 		body["document"] = value
-		// Some endpoints require the specific "cpf"/"cnpj" field instead of "document"
-		clean := strings.ReplaceAll(value, ".", "")
-		clean = strings.ReplaceAll(clean, "-", "")
-		clean = strings.ReplaceAll(clean, "/", "")
-		if len(clean) == 11 {
-			body["cpf"] = value
-		} else if len(clean) == 14 {
-			body["cnpj"] = value
-		}
 	case "placa":
 		body["placa"] = value
 	case "nome":
