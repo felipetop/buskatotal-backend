@@ -1,0 +1,12 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Block ALL external access.
+    // The Go backend uses the Admin SDK (service account),
+    // which bypasses these rules entirely.
+    // This only prevents direct client-side access.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
