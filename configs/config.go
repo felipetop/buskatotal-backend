@@ -29,6 +29,7 @@ type Config struct {
 	ApiFullToken       string  // API Full Bearer token
 	ApiFullBaseURL     string  // API Full base URL
 	ResendAPIKey       string  // Resend API key for sending emails
+	CORSAllowedOrigins string  // Comma-separated list of allowed CORS origins
 }
 
 func Load() Config {
@@ -43,7 +44,7 @@ func Load() Config {
 		InfocarUser:        getEnv("INFOCAR_USER", ""),
 		InfocarPassword:    getEnv("INFOCAR_PASSWORD", ""),
 		InfocarBaseURL:     getEnv("INFOCAR_BASE_URL", "https://api.datacast3.com/api"),
-		AuthMode:           getEnv("AUTH_MODE", "mock"),
+		AuthMode:           getEnv("AUTH_MODE", "jwt"),
 		AuthHeader:         getEnv("AUTH_HEADER", "X-User-Id"),
 		AuthJWTSecret:      getEnv("AUTH_JWT_SECRET", ""),
 		PicPayClientID:     getEnv("PICPAY_CLIENT_ID", ""),
@@ -61,6 +62,7 @@ func Load() Config {
 		ApiFullBaseURL:     getEnv("APIFULL_BASE_URL", "https://api.apifull.com.br/api"),
 		// RESEND_API_KEY deve ser definido em variável de ambiente segura.
 		ResendAPIKey:       getEnv("RESEND_API_KEY", ""),
+		CORSAllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "https://www.buskatotal.com.br,https://buskatotal.com.br"),
 	}
 }
 

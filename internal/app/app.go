@@ -5,6 +5,7 @@ import (
     "fmt"
     "log"
     "net/http"
+    "strings"
     "time"
 
     "github.com/gin-gonic/gin"
@@ -27,12 +28,27 @@ func Run() error {
     cfg := configs.Load()
 
     if cfg.AuthJWTSecret == "" {
-        cfg.AuthJWTSecret = "dev-secret"
+        log.Fatal("AUTH_JWT_SECRET is required — set this environment variable before starting")
     }
 
     router := gin.Default()
+
+    allowedOrigins := strings.Split(cfg.CORSAllowedOrigins, ",")
+    for i := range allowedOrigins {
+        allowedOrigins[i] = strings.TrimSpace(allowedOrigins[i])
+    }
     router.Use(func(c *gin.Context) {
-        c.Header("Access-Control-Allow-Origin", "*")
+        origin := c.GetHeader("Origin")
+        allowed := false
+        for _, o := range allowedOrigins {
+            if o == origin {
+                allowed = true
+                break
+            }
+        }
+        if allowed {
+            c.Header("Access-Control-Allow-Origin", origin)
+        }
         c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
         c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-User-Id")
         if c.Request.Method == http.MethodOptions {
@@ -45,12 +61,7 @@ func Run() error {
         c.JSON(http.StatusOK, gin.H{"status": "ok"})
     })
 
-    var authProvider httpinterfaces.AuthProvider
-    if cfg.AuthMode == "jwt" {
-        authProvider = authinfra.NewJWTProvider(cfg.AuthJWTSecret)
-    } else {
-        authProvider = authinfra.NewMockProvider(cfg.AuthHeader)
-    }
+    authProvider := authinfra.NewJWTProvider(cfg.AuthJWTSecret)
     authMiddleware := httpinterfaces.NewAuthMiddleware(authProvider, cfg.AuthHeader)
 
     // Select payment provider: PicPay only. No mock — without keys, payments are blocked.

@@ -4,10 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"buskatotal-backend/internal/domain/user"
 	"buskatotal-backend/internal/infra/apifull"
+)
+
+var (
+	reCPF   = regexp.MustCompile(`^\d{11}$`)
+	reCNPJ  = regexp.MustCompile(`^\d{14}$`)
+	rePlaca = regexp.MustCompile(`(?i)^[A-Z]{3}\d[A-Z0-9]\d{2}$`)
 )
 
 // ApiFullProductConfig defines an API Full product.
@@ -46,7 +53,7 @@ var ApiFullProducts = map[string]ApiFullProductConfig{
 	},
 	"busca-telefone": {
 		Key: "busca-telefone", Name: "Busca pelo telefone",
-		Endpoint: "ic-telefone", Link: "ic-nome",
+		Endpoint: "ic-telefone", Link: "ic-telefone",
 		InputType: "telefone", SaleCents: 450,
 	},
 	"cnpj": {
@@ -193,7 +200,7 @@ var ApiFullProducts = map[string]ApiFullProductConfig{
 	"cndt": {
 		Key: "cndt", Name: "Certidão Nacional de Débitos Trabalhistas",
 		Endpoint: "ic-cndt", Link: "ic-cndt",
-		InputType: "cpf", SaleCents: 2160,
+		InputType: "document", SaleCents: 2160,
 	},
 }
 
@@ -222,6 +229,11 @@ func (s *ApiFullService) QueryProduct(ctx context.Context, userID, productKey, v
 	}
 	if userID == "" {
 		return nil, errors.New("user id is required")
+	}
+
+	// Validate input format before debiting
+	if err := validateInput(product.InputType, value); err != nil {
+		return nil, err
 	}
 
 	// Debit balance
@@ -271,4 +283,33 @@ func (s *ApiFullService) QueryProduct(ctx context.Context, userID, productKey, v
 	}
 
 	return result, nil
+}
+
+// validateInput checks the format of the input value based on the product input type.
+func validateInput(inputType, value string) error {
+	switch inputType {
+	case "cpf":
+		if !reCPF.MatchString(value) {
+			return errors.New("CPF inválido: deve conter 11 dígitos numéricos")
+		}
+	case "cnpj":
+		if !reCNPJ.MatchString(value) {
+			return errors.New("CNPJ inválido: deve conter 14 dígitos numéricos")
+		}
+	case "document":
+		if !reCPF.MatchString(value) && !reCNPJ.MatchString(value) {
+			return errors.New("documento inválido: deve ser CPF (11 dígitos) ou CNPJ (14 dígitos)")
+		}
+	case "placa":
+		if !rePlaca.MatchString(value) {
+			return errors.New("placa inválida: formato esperado ABC1D23 ou ABC1234")
+		}
+	case "nome":
+		if len(value) < 3 || len(value) > 200 {
+			return errors.New("nome inválido: deve ter entre 3 e 200 caracteres")
+		}
+	case "telefone":
+		// validated later in the switch
+	}
+	return nil
 }

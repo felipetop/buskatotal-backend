@@ -2,7 +2,9 @@ package http
 
 import (
 	"context"
+	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -46,7 +48,13 @@ func (h *ApiFullHandler) QueryProduct(c *gin.Context) {
 
 	result, err := h.service.QueryProduct(c.Request.Context(), userID, productKey, input.Valor)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		msg := err.Error()
+		// Log full error server-side, return sanitized message to client
+		log.Printf("[apifull] product=%s user=%s error=%s", productKey, userID, msg)
+		if strings.Contains(msg, "apifull") {
+			msg = "erro ao consultar dados, tente novamente"
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
 		return
 	}
 
