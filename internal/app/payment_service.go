@@ -43,6 +43,9 @@ func (s *PaymentService) CreateOrder(
 	buyer payment.Buyer,
 	returnURL string,
 ) (payment.Order, error) {
+	if s.provider == nil {
+		return payment.Order{}, errors.New("payment provider not configured")
+	}
 	if userID == "" {
 		return payment.Order{}, errors.New("user id is required")
 	}
@@ -98,6 +101,9 @@ func (s *PaymentService) CreateOrder(
 // It re-queries PicPay to confirm the status (never trusts the webhook payload alone).
 // If the order is paid, it credits the user's balance.
 func (s *PaymentService) ProcessWebhook(ctx context.Context, referenceID string) error {
+	if s.provider == nil {
+		return errors.New("payment provider not configured")
+	}
 	if referenceID == "" {
 		return errors.New("referenceId is required")
 	}
@@ -175,6 +181,9 @@ func (s *PaymentService) ListOrders(ctx context.Context, userID string) ([]payme
 
 // Credit keeps backward compatibility for direct/mock credits.
 func (s *PaymentService) Credit(ctx context.Context, userID string, amount int64) (payment.Receipt, error) {
+	if s.provider == nil {
+		return payment.Receipt{}, errors.New("payment provider not configured")
+	}
 	if userID == "" {
 		return payment.Receipt{}, errors.New("user id is required")
 	}

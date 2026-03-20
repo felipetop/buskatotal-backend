@@ -53,13 +53,11 @@ func Run() error {
     }
     authMiddleware := httpinterfaces.NewAuthMiddleware(authProvider, cfg.AuthHeader)
 
-    // Select payment provider: use PicPay when a token is configured, mock otherwise.
+    // Select payment provider: PicPay only. No mock — without keys, payments are blocked.
     var paymentProvider payment.Provider
-    isMockPayment := cfg.PicPayClientID == "" || cfg.PicPayClientSecret == ""
-    if !isMockPayment {
+    isMockPayment := false
+    if cfg.PicPayClientID != "" && cfg.PicPayClientSecret != "" {
         paymentProvider = paymentinfra.NewPicPayProvider(cfg.PicPayClientID, cfg.PicPayClientSecret)
-    } else {
-        paymentProvider = paymentinfra.NewMockProvider()
     }
 
     var emailVerificationService *EmailVerificationService
